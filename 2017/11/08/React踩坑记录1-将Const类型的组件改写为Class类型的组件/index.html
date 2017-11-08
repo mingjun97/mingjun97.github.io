@@ -37,7 +37,7 @@
 				<h1 class="site-name"><a href="/" title="mingjun97的blog">mingjun97的blog</a></h1>
 				<h2 class="blog-motto">日常填坑的各种记录</h2>
 			</div>
-			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
 			</a></div>
 			<nav class="animated">
 				<ul>
@@ -50,7 +50,7 @@
 					
 					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
 						<label>Search</label>
-						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
 						<input type="hidden" name="q" value="site:mingjun97.github.io">
 					</form>
 					
@@ -74,7 +74,7 @@
     </p>
   <p class="article-time">
     <time datetime="2017-11-08T08:39:09.000Z" itemprop="datePublished">2017-11-08</time>
-    更新日期:<time datetime="2017-11-08T09:06:18.697Z" itemprop="dateModified">2017-11-08</time>
+    Updated:<time datetime="2017-11-08T09:06:18.697Z" itemprop="dateModified">2017-11-08</time>
     
   </p>
 </header>
@@ -82,116 +82,16 @@
 		
 		
 		<div id="toc" class="toc-article">
-			<strong class="toc-title">文章目录</strong>
+			<strong class="toc-title">Contents</strong>
 		<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#背景"><span class="toc-number">1.</span> <span class="toc-text">背景</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#修改过程"><span class="toc-number">2.</span> <span class="toc-text">修改过程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#旧代码"><span class="toc-number">2.1.</span> <span class="toc-text">旧代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改后的代码"><span class="toc-number">2.2.</span> <span class="toc-text">魔改后的代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改思路"><span class="toc-number">2.3.</span> <span class="toc-text">魔改思路</span></a></li></ol></li></ol>
 		</div>
 		
 		<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>博主没系统学过JavaScript，但是由于项目需要所以利用Admin-On-Rest框架进行编写程序，该框架基于React，利用JSX进行编写，在编写的时候由于不懂JS所以回踩到很多很多的坑。排坑过程记录一下，方便有其他像我这样强行开车的同学跳坑而出。</p>
 <h1 id="修改过程"><a href="#修改过程" class="headerlink" title="修改过程"></a>修改过程</h1><p>直接利用Admin-On-Rest-demo魔改的，在一个List中需要添加几个按钮，demo中将该按钮写成了const类型的IconButton，我需要自己添加一些点击后的业务逻辑，所以需要将其修改为Class类型。</p>
-<h2 id="旧代码"><a href="#旧代码" class="headerlink" title="旧代码"></a>旧代码</h2><p>魔改源代码路径：</p>
-<pre><code>./admin-on-rest-demo/src/buttons/EditButton.js
-</code></pre><p>魔改源代码内容：</p>
-<pre><code>import React from &#39;react&#39;;
-import PropTypes from &#39;prop-types&#39;;
-import { Link } from &#39;react-router-dom&#39;;
-import IconButton from &#39;material-ui/IconButton&#39;;
-import {cyan500} from &#39;material-ui/styles/colors&#39;;
-import ContentCreate from &#39;material-ui/svg-icons/content/create&#39;;
-
-const EditButton = ({ basePath = &#39;&#39;, record = {} }) =&gt; (
-    &lt;IconButton
-        containerElement={&lt;Link to={`${basePath}/${record.id}`} /&gt;}
-        style={{ overflow: 'inherit' }}
-    &gt;
-        &lt;ContentCreate color={cyan500} /&gt;
-    &lt;/IconButton&gt;
-);
-
-EditButton.propTypes = {
-    basePath: PropTypes.string,
-    record: PropTypes.object,
-};
-
-EditButton.defaultProps = {
-    style: { padding: 0 },
-};
-
-export default EditButton;
-</code></pre><h2 id="魔改后的代码"><a href="#魔改后的代码" class="headerlink" title="魔改后的代码"></a>魔改后的代码</h2><pre><code>import React, {Component} from &#39;react&#39;;
-import PropTypes from &#39;prop-types&#39;;
-import { Link } from &#39;react-router-dom&#39;;
-import IconButton from &#39;material-ui/IconButton&#39;;
-import { cyan500 } from &#39;material-ui/styles/colors&#39;;
-import ActionAccountBalanceWallet  from &#39;material-ui/svg-icons/action/account-balance-wallet&#39;;
-import { Dialog, FlatButton, TextField } from &#39;material-ui&#39;;
-
-class TopUpButton extends Component{
-    constructor(props) {
-        super(props);
-        this.state = { ...props };
-        this.setState( { open: false });
-    }
-
-    handleClick = () =&gt; {
-        this.setState({open: true});
-    };
-
-    handleClose = () =&gt; {
-        this.setState({open: false});
-    };
-
-    render() {
-        const actions = [
-            &lt;FlatButton
-                label=&quot;取消&quot;
-                primary={true}
-                onClick={this.handleClose}
-            /&gt;,
-            &lt;FlatButton
-                label=&quot;提交&quot;
-                primary={true}
-                keyboardFocused={false}
-                onClick={this.handleClose}
-            /&gt;,
-        ];
-        return (
-            &lt;div&gt;
-            &lt;IconButton
-                onClick={this.handleClick.bind(this)}
-                style={{ overflow: 'inherit' }}
-                tooltip=&quot;充值&quot;
-                tooltipPosition=&quot;left&quot;
-            &gt;
-                &lt;ActionAccountBalanceWallet color={cyan500} /&gt;
-            &lt;/IconButton&gt;
-            &lt;Dialog
-                title=&quot;请输入要转入的金额，转入后不可转出：&quot;
-                actions={actions}
-                modal={false}
-                open={this.state.open}
-                onRequestClose={this.handleClose} &gt;
-
-                &lt;TextField floatingLabelText=&quot;金额&quot; /&gt;
-
-            &lt;/Dialog&gt;
-            &lt;/div&gt;
-        );
-    }
-}
-
-TopUpButton.propTypes = {
-    basePath: PropTypes.string,
-    record: PropTypes.object,
-};
-
-TopUpButton.defaultProps = {
-    style: { padding: 0 },
-    basePath: &#39;&#39;,
-    record: {}
-};
-
-export default TopUpButton;
-</code></pre><h2 id="魔改思路"><a href="#魔改思路" class="headerlink" title="魔改思路"></a>魔改思路</h2><p>日后再补。</p>
+<h2 id="旧代码"><a href="#旧代码" class="headerlink" title="旧代码"></a>旧代码</h2><p>魔改源代码路径：<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./admin-<span class="keyword">on</span>-<span class="built_in">rest</span>-demo/src/buttons/EditButton.js</span><br></pre></td></tr></table></figure></p>
+<p>魔改源代码内容：<br><figure class="highlight xquery"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> React from <span class="string">'react'</span>;</span><br><span class="line"><span class="keyword">import</span> PropTypes from <span class="string">'prop-types'</span>;</span><br><span class="line"><span class="keyword">import</span> &#123; Link &#125; from <span class="string">'react-router-dom'</span>;</span><br><span class="line"><span class="keyword">import</span> IconButton from <span class="string">'material-ui/IconButton'</span>;</span><br><span class="line"><span class="keyword">import</span> &#123;cyan50<span class="number">0</span>&#125; from <span class="string">'material-ui/styles/colors'</span>;</span><br><span class="line"><span class="keyword">import</span> ContentCreate from <span class="string">'material-ui/svg-icons/content/create'</span>;</span><br><span class="line"></span><br><span class="line">const EditButton = (&#123; basePath = <span class="string">''</span>, record = &#123;&#125; &#125;) =&gt; (</span><br><span class="line">    &lt;IconButton</span><br><span class="line">        containerElement=&#123;&lt;Link to=&#123;`$&#123;basePath&#125;/$&#123;record.id&#125;`&#125; /&gt;&#125;</span><br><span class="line">        style=&#123;&#123; overflow: <span class="string">'inherit'</span> &#125;&#125;</span><br><span class="line">    &gt;</span><br><span class="line">        &lt;ContentCreate color=&#123;cyan50<span class="number">0</span>&#125; /&gt;</span><br><span class="line">    &lt;/IconButton&gt;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line">EditButton.propTypes = &#123;</span><br><span class="line">    basePath: PropTypes.string,</span><br><span class="line">    record: PropTypes.object,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">EditButton.defaultProps = &#123;</span><br><span class="line">    style: &#123; padding: <span class="number">0</span> &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">export <span class="keyword">default</span> EditButton;</span><br></pre></td></tr></table></figure></p>
+<h2 id="魔改后的代码"><a href="#魔改后的代码" class="headerlink" title="魔改后的代码"></a>魔改后的代码</h2><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> React, &#123;Component&#125; from <span class="string">'react'</span>;</span><br><span class="line"><span class="keyword">import</span> PropTypes from <span class="string">'prop-types'</span>;</span><br><span class="line"><span class="keyword">import</span> &#123; Link &#125; from <span class="string">'react-router-dom'</span>;</span><br><span class="line"><span class="keyword">import</span> IconButton from <span class="string">'material-ui/IconButton'</span>;</span><br><span class="line"><span class="keyword">import</span> &#123; cyan500 &#125; from <span class="string">'material-ui/styles/colors'</span>;</span><br><span class="line"><span class="keyword">import</span> ActionAccountBalanceWallet  from <span class="string">'material-ui/svg-icons/action/account-balance-wallet'</span>;</span><br><span class="line"><span class="keyword">import</span> &#123; Dialog, FlatButton, TextField &#125; from <span class="string">'material-ui'</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TopUpButton</span> <span class="title">extends</span> <span class="title">Component</span></span>&#123;</span><br><span class="line">    <span class="keyword">constructor</span>(props) &#123;</span><br><span class="line">        <span class="keyword">super</span>(props);</span><br><span class="line">        <span class="keyword">this</span>.state = &#123; ...props &#125;;</span><br><span class="line">        <span class="keyword">this</span>.setState( &#123; <span class="keyword">open</span>: <span class="literal">false</span> &#125;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    handleClick = () =&gt; &#123;</span><br><span class="line">        <span class="keyword">this</span>.setState(&#123;<span class="keyword">open</span>: <span class="literal">true</span>&#125;);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    handleClose = () =&gt; &#123;</span><br><span class="line">        <span class="keyword">this</span>.setState(&#123;<span class="keyword">open</span>: <span class="literal">false</span>&#125;);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    render() &#123;</span><br><span class="line">        const actions = [</span><br><span class="line">            &lt;FlatButton</span><br><span class="line">                label=<span class="string">"取消"</span></span><br><span class="line">                primary=&#123;<span class="literal">true</span>&#125;</span><br><span class="line">                onClick=&#123;<span class="keyword">this</span>.handleClose&#125;</span><br><span class="line">            /&gt;,</span><br><span class="line">            &lt;FlatButton</span><br><span class="line">                label=<span class="string">"提交"</span></span><br><span class="line">                primary=&#123;<span class="literal">true</span>&#125;</span><br><span class="line">                keyboardFocused=&#123;<span class="literal">false</span>&#125;</span><br><span class="line">                onClick=&#123;<span class="keyword">this</span>.handleClose&#125;</span><br><span class="line">            /&gt;,</span><br><span class="line">        ];</span><br><span class="line">        <span class="keyword">return</span> (</span><br><span class="line">            &lt;div&gt;</span><br><span class="line">            &lt;IconButton</span><br><span class="line">                onClick=&#123;<span class="keyword">this</span>.handleClick.bind(<span class="keyword">this</span>)&#125;</span><br><span class="line">                style=&#123;&#123; overflow: <span class="string">'inherit'</span> &#125;&#125;</span><br><span class="line">                tooltip=<span class="string">"充值"</span></span><br><span class="line">                tooltipPosition=<span class="string">"left"</span></span><br><span class="line">            &gt;</span><br><span class="line">                &lt;ActionAccountBalanceWallet color=&#123;cyan500&#125; /&gt;</span><br><span class="line">            &lt;/IconButton&gt;</span><br><span class="line">            &lt;Dialog</span><br><span class="line">                title=<span class="string">"请输入要转入的金额，转入后不可转出："</span></span><br><span class="line">                actions=&#123;actions&#125;</span><br><span class="line">                modal=&#123;<span class="literal">false</span>&#125;</span><br><span class="line">                <span class="keyword">open</span>=&#123;<span class="keyword">this</span>.state.<span class="keyword">open</span>&#125;</span><br><span class="line">                onRequestClose=&#123;<span class="keyword">this</span>.handleClose&#125; &gt;</span><br><span class="line"></span><br><span class="line">                &lt;TextField floatingLabelText=<span class="string">"金额"</span> /&gt;</span><br><span class="line"></span><br><span class="line">            &lt;/Dialog&gt;</span><br><span class="line">            &lt;/div&gt;</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">TopUpButton.propTypes = &#123;</span><br><span class="line">    basePath: PropTypes.string,</span><br><span class="line">    record: PropTypes.<span class="keyword">object</span>,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">TopUpButton.defaultProps = &#123;</span><br><span class="line">    style: &#123; padding: <span class="number">0</span> &#125;,</span><br><span class="line">    basePath: <span class="string">''</span>,</span><br><span class="line">    record: &#123;&#125;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">export <span class="keyword">default</span> TopUpButton;</span><br></pre></td></tr></table></figure>
+<h2 id="魔改思路"><a href="#魔改思路" class="headerlink" title="魔改思路"></a>魔改思路</h2><p>日后再补。</p>
   
 	</div>
 		<footer class="article-footer clearfix">
@@ -216,22 +116,22 @@ export default TopUpButton;
 	
 </div>  
 
-      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
 
   <div id="toc" class="toc-aside">
-  <strong class="toc-title">文章目录</strong>
+  <strong class="toc-title">Contents</strong>
   <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#背景"><span class="toc-number">1.</span> <span class="toc-text">背景</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#修改过程"><span class="toc-number">2.</span> <span class="toc-text">修改过程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#旧代码"><span class="toc-number">2.1.</span> <span class="toc-text">旧代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改后的代码"><span class="toc-number">2.2.</span> <span class="toc-text">魔改后的代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改思路"><span class="toc-number">2.3.</span> <span class="toc-text">魔改思路</span></a></li></ol></li></ol>
   </div>
 
 <div id="asidepart">
-<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
 <aside class="clearfix">
 
   
 
   
 <div class="tagslist">
-	<p class="asidetitle">标签</p>
+	<p class="asidetitle">Tags</p>
 		<ul class="clearfix">
 		
 			<li><a href="/tags/React-JSX-Admin-On-Rest/" title="React/JSX/Admin-On-Rest">React/JSX/Admin-On-Rest<sup>1</sup></a></li>
@@ -241,7 +141,7 @@ export default TopUpButton;
 
 
   <div class="rsspart">
-	<a href="" target="_blank" title="rss">RSS 订阅</a>
+	<a href="" target="_blank" title="rss">RSS</a>
 </div>
 
 </aside>
