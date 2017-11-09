@@ -74,7 +74,7 @@
     </p>
   <p class="article-time">
     <time datetime="2017-11-08T08:39:09.000Z" itemprop="datePublished">2017-11-08</time>
-    Updated:<time datetime="2017-11-09T15:58:17.735Z" itemprop="dateModified">2017-11-09</time>
+    Updated:<time datetime="2017-11-09T16:01:40.716Z" itemprop="dateModified">2017-11-10</time>
     
   </p>
 </header>
@@ -83,7 +83,7 @@
 		
 		<div id="toc" class="toc-article">
 			<strong class="toc-title">Contents</strong>
-		<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#背景"><span class="toc-number">1.</span> <span class="toc-text">背景</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#修改过程"><span class="toc-number">2.</span> <span class="toc-text">修改过程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#旧代码"><span class="toc-number">2.1.</span> <span class="toc-text">旧代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改后的代码"><span class="toc-number">2.2.</span> <span class="toc-text">魔改后的代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改思路"><span class="toc-number">2.3.</span> <span class="toc-text">魔改思路</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#最后"><span class="toc-number">3.</span> <span class="toc-text">最后</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#更新"><span class="toc-number">4.</span> <span class="toc-text">更新</span></a></li></ol>
+		<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#背景"><span class="toc-number">1.</span> <span class="toc-text">背景</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#修改过程"><span class="toc-number">2.</span> <span class="toc-text">修改过程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#旧代码"><span class="toc-number">2.1.</span> <span class="toc-text">旧代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改后的代码"><span class="toc-number">2.2.</span> <span class="toc-text">魔改后的代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改思路"><span class="toc-number">2.3.</span> <span class="toc-text">魔改思路</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#最后"><span class="toc-number">3.</span> <span class="toc-text">最后</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#更新"><span class="toc-number">4.</span> <span class="toc-text">更新</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#刚刚发现的参考链接"><span class="toc-number">4.1.</span> <span class="toc-text">刚刚发现的参考链接</span></a></li></ol></li></ol>
 		</div>
 		
 		<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>博主没系统学过JavaScript，但是由于项目需要所以利用Admin-On-Rest框架进行编写程序，该框架基于React，利用JSX进行编写，在编写的时候由于不懂JS所以回踩到很多很多的坑。排坑过程记录一下，方便有其他像我这样强行开车的同学跳坑而出。</p>
@@ -98,6 +98,7 @@
 <h1 id="更新"><a href="#更新" class="headerlink" title="更新"></a>更新</h1><p>今天忽然发现有更机智的办法，对constructor的理解又深了一步。constructor会将传入的参数存入类的props属性中，直接在props中调用相关属性就可以了，没必要再次赋值到state中。此外，通过在render语句中添加：<br><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">const &#123; <span class="keyword">data</span>, data2 &#125; = <span class="keyword">this</span>.props;</span><br></pre></td></tr></table></figure></p>
 <p>就可以从props中直接取出属性来啦，避免了很多很多很多的麻烦。<br>这里提供了一个思路，回头试验一下<br><figure class="highlight coffeescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">console</span>.log(<span class="class"><span class="keyword">class</span>);</span></span><br></pre></td></tr></table></figure></p>
 <p>看看能不能得到更令我惊喜的其他结果。</p>
+<h2 id="刚刚发现的参考链接"><a href="#刚刚发现的参考链接" class="headerlink" title="刚刚发现的参考链接"></a>刚刚发现的参考链接</h2><p><a href="https://www.cnblogs.com/wonyun/p/5930333.html" target="_blank" rel="external">https://www.cnblogs.com/wonyun/p/5930333.html</a></p>
   
 	</div>
 		<footer class="article-footer clearfix">
@@ -126,7 +127,7 @@
 
   <div id="toc" class="toc-aside">
   <strong class="toc-title">Contents</strong>
-  <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#背景"><span class="toc-number">1.</span> <span class="toc-text">背景</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#修改过程"><span class="toc-number">2.</span> <span class="toc-text">修改过程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#旧代码"><span class="toc-number">2.1.</span> <span class="toc-text">旧代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改后的代码"><span class="toc-number">2.2.</span> <span class="toc-text">魔改后的代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改思路"><span class="toc-number">2.3.</span> <span class="toc-text">魔改思路</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#最后"><span class="toc-number">3.</span> <span class="toc-text">最后</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#更新"><span class="toc-number">4.</span> <span class="toc-text">更新</span></a></li></ol>
+  <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#背景"><span class="toc-number">1.</span> <span class="toc-text">背景</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#修改过程"><span class="toc-number">2.</span> <span class="toc-text">修改过程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#旧代码"><span class="toc-number">2.1.</span> <span class="toc-text">旧代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改后的代码"><span class="toc-number">2.2.</span> <span class="toc-text">魔改后的代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改思路"><span class="toc-number">2.3.</span> <span class="toc-text">魔改思路</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#最后"><span class="toc-number">3.</span> <span class="toc-text">最后</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#更新"><span class="toc-number">4.</span> <span class="toc-text">更新</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#刚刚发现的参考链接"><span class="toc-number">4.1.</span> <span class="toc-text">刚刚发现的参考链接</span></a></li></ol></li></ol>
   </div>
 
 <div id="asidepart">
