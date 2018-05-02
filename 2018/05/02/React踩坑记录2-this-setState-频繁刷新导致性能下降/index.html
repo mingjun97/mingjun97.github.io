@@ -4,12 +4,13 @@
 <head>
   <meta charset="UTF-8">
   
-    <title>mingjun97的blog</title>
+    <title>React踩坑记录2 - this.setState()频繁刷新导致性能下降 | mingjun97的blog</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
     
     <meta name="author" content="mingjun97">
     
-    <meta name="description" content="title: React踩坑记录1 - 将const类型的组件改写为class类型的组件">
+    <meta name="description" content="前言这两天在做软件安全实验，实验要求写一个嗅探器+arp欺骗的工具。老师要求是用winpcap来实现。偷懒的我决定用python3的scapy模块来实现相关的功能。介于老师有要求写出漂亮的界面，所以最后决定使用flask+semantic-ui+socketio+react来实现套件功能。
+踩坑实况">
     
     
     
@@ -36,7 +37,7 @@
 				<h1 class="site-name"><a href="/" title="mingjun97的blog">mingjun97的blog</a></h1>
 				<h2 class="blog-motto">日常填坑的各种记录</h2>
 			</div>
-			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜單">
 			</a></div>
 			<nav class="animated">
 				<ul>
@@ -49,7 +50,7 @@
 					
 					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
 						<label>Search</label>
-						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
 						<input type="hidden" name="q" value="site:mingjun97.github.io">
 					</form>
 					
@@ -65,15 +66,15 @@
 		<header class="article-info clearfix">
   <h1 itemprop="name">
     
-      <a href="/2017'11'08'React-踩坑实例/" title="" itemprop="url"></a>
+      <a href="/2018/05/02/React踩坑记录2-this-setState-频繁刷新导致性能下降/" title="React踩坑记录2 - this.setState()频繁刷新导致性能下降" itemprop="url">React踩坑记录2 - this.setState()频繁刷新导致性能下降</a>
   </h1>
   <p class="article-author">By
     
       <a href="http://mingjun97.github.io" title="mingjun97">mingjun97</a>
     </p>
   <p class="article-time">
-    <time datetime="2017-11-08T08:36:41.822Z" itemprop="datePublished">2017-11-08</time>
-    Updated:<time datetime="2017-11-08T08:36:41.822Z" itemprop="dateModified">2017-11-08</time>
+    <time datetime="2018-05-02T13:34:09.000Z" itemprop="datePublished">2018-05-02</time>
+    更新日期:<time datetime="2018-05-02T13:54:36.477Z" itemprop="dateModified">2018-05-02</time>
     
   </p>
 </header>
@@ -81,11 +82,15 @@
 		
 		
 		<div id="toc" class="toc-article">
-			<strong class="toc-title">Contents</strong>
-		
+			<strong class="toc-title">文章目錄</strong>
+		<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#踩坑实况"><span class="toc-number">2.</span> <span class="toc-text">踩坑实况</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#背景描述"><span class="toc-number">2.1.</span> <span class="toc-text">背景描述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#解决方案"><span class="toc-number">2.2.</span> <span class="toc-text">解决方案</span></a></li></ol></li></ol>
 		</div>
 		
-		<p>title: React踩坑记录1 - 将const类型的组件改写为class类型的组件</p>
+		<h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>这两天在做软件安全实验，实验要求写一个嗅探器+arp欺骗的工具。老师要求是用<code>winpcap</code>来实现。偷懒的我决定用<code>python3</code>的<code>scapy</code>模块来实现相关的功能。介于老师有要求写出漂亮的界面，所以最后决定使用<code>flask</code>+<code>semantic-ui</code>+<code>socketio</code>+<code>react</code>来实现套件功能。</p>
+<h1 id="踩坑实况"><a href="#踩坑实况" class="headerlink" title="踩坑实况"></a>踩坑实况</h1><h2 id="背景描述"><a href="#背景描述" class="headerlink" title="背景描述"></a>背景描述</h2><p>由于后台使用了scapy进行抓包，使用prn参数的回调功能结合socketio来实现包的广播（这里有另外一个坑），但是如果短时间内抓到大量的包的话，会导致前端频繁的进行刷新，进而导致页面假死，用户使用体验极差。（CPU占用长时间100%）</p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>考虑到之前不知道在哪看到的 <code>this.setState()</code> 函数会使得页面进行一次刷新。而直接通过<code>this.state.xxx.push()</code> 不会使得页面刷新，所以这里就将socketio接收到消息的事件通过函数将内容push到数组里面。</p>
+<p>然后设定一个计时器，定时使用<code>this.setState()</code>更新一个为用到的数据，来实现页面的刷新。这样能同时兼顾用户可用性和数据包接收。（CPU占用稳定在40%左右，不得不承认，基于web的抓包展示工具还是有些瓶颈在其中）。</p>
+<p>后来发现单个页面过长也会导致性能下降（一次在一个页面内渲染好几万个包），所以又引入了分页机制。最后整体来看总算稳定了。</p>
   
 	</div>
 		<footer class="article-footer clearfix">
@@ -95,32 +100,59 @@
 
 <div class="article-share" id="share">
 
-  <div data-url="http://mingjun97.github.io/2017'11'08'React-踩坑实例/" data-title="mingjun97的blog" data-tsina="" class="share clearfix">
+  <div data-url="http://mingjun97.github.io/2018/05/02/React踩坑记录2-this-setState-频繁刷新导致性能下降/" data-title="React踩坑记录2 - this.setState()频繁刷新导致性能下降 | mingjun97的blog" data-tsina="" class="share clearfix">
   </div>
 
 </div>
 </footer>   	       
 	</article>
 	
+<nav class="article-nav clearfix">
+ 
+
+<div class="next">
+<a href="/2017/11/08/React踩坑记录1-将Const类型的组件改写为Class类型的组件/"  title="React踩坑记录1 - 将Const类型的组件改写为Class类型的组件">
+ <strong>NEXT:</strong><br/> 
+ <span>React踩坑记录1 - 将Const类型的组件改写为Class类型的组件
+</span>
+</a>
+</div>
+
+</nav>
+
 	
 </div>  
-      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+
+      <div class="openaside"><a class="navbutton" href="#" title="顯示側邊欄"></a></div>
 
   <div id="toc" class="toc-aside">
-  <strong class="toc-title">Contents</strong>
-  
+  <strong class="toc-title">文章目錄</strong>
+  <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#踩坑实况"><span class="toc-number">2.</span> <span class="toc-text">踩坑实况</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#背景描述"><span class="toc-number">2.1.</span> <span class="toc-text">背景描述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#解决方案"><span class="toc-number">2.2.</span> <span class="toc-text">解决方案</span></a></li></ol></li></ol>
   </div>
 
 <div id="asidepart">
-<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<div class="closeaside"><a class="closebutton" href="#" title="隱藏側邊欄"></a></div>
 <aside class="clearfix">
 
   
 
   
+<div class="tagslist">
+	<p class="asidetitle">標簽</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/Admin-On-Rest/" title="Admin-On-Rest">Admin-On-Rest<sup>1</sup></a></li>
+		
+			<li><a href="/tags/JSX/" title="JSX">JSX<sup>1</sup></a></li>
+		
+			<li><a href="/tags/React/" title="React">React<sup>1</sup></a></li>
+		
+		</ul>
+</div>
+
 
   <div class="rsspart">
-	<a href="" target="_blank" title="rss">RSS</a>
+	<a href="" target="_blank" title="rss">RSS 訂閱</a>
 </div>
 
 </aside>
@@ -141,7 +173,7 @@
 		
 		
 	</div>
-		<p class="copyright">Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/A-limon/pacman" target="_blank" title="Pacman">Pacman</a> © 2017 
+		<p class="copyright">Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/A-limon/pacman" target="_blank" title="Pacman">Pacman</a> © 2018 
 		
 		<a href="http://mingjun97.github.io" target="_blank" title="mingjun97">mingjun97</a>
 		
