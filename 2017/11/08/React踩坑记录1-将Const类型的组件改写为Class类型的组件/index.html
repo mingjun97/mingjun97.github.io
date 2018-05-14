@@ -1,92 +1,61 @@
+<!DOCTYPE html>
+<html>
 
- <!DOCTYPE HTML>
-<html lang="zh_CN">
 <head>
-  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+  <title>React踩坑记录1 - 将Const类型的组件改写为Class类型的组件 | mingjun97的blog</title>
+  <meta name="description" content="日常填坑的各种记录" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" type="text/css" href="/css/screen.css" />
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Noto+Serif:400,700,400italic|Open+Sans:700,400" />
+
+  <meta name="generator" content="mingjun97的blog">
+
   
-    <title>React踩坑记录1 - 将Const类型的组件改写为Class类型的组件 | mingjun97的blog</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
-    
-    <meta name="author" content="mingjun97">
-    
-    <meta name="description" content="背景博主没系统学过JavaScript，但是由于项目需要所以利用Admin-On-Rest框架进行编写程序，该框架基于React，利用JSX进行编写，在编写的时候由于不懂JS所以回踩到很多很多的坑。排坑过程记录一下，方便有其他像我这样强行开车的同学跳坑而出。
-修改过程直接利用Admin-On-Res">
-    
-    
-    
-    
-    
-    <link rel="icon" href="/img/favicon.ico">
-    
-    
-    <link rel="apple-touch-icon" href="/img/logo.png">
-    <link rel="apple-touch-icon-precomposed" href="/img/logo.png">
-    
-    <link rel="stylesheet" href="/css/style.css">
+  
+  
+
+  
 </head>
 
-  <body>
-    <header>
-      <div>
-		
-			<div id="imglogo">
-				<a href="/"><img src="/img/logo.png" alt="mingjun97的blog" title="mingjun97的blog"/></a>
-			</div>
-			
-			<div id="textlogo">
-				<h1 class="site-name"><a href="/" title="mingjun97的blog">mingjun97的blog</a></h1>
-				<h2 class="blog-motto">日常填坑的各种记录</h2>
-			</div>
-			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
-			</a></div>
-			<nav class="animated">
-				<ul>
-					
-						<li><a href="/">Home</a></li>
-					
-						<li><a href="/archives">Archives</a></li>
-					
-					<li>
-					
-					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
-						<label>Search</label>
-						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="Search" />
-						<input type="hidden" name="q" value="site:mingjun97.github.io">
-					</form>
-					
-					</li>
-				</ul>
-			</nav>			
-</div>
 
-    </header>
-    <div id="container">
-      <div id="main" class="post" itemscope itemprop="blogPost">
-	<article itemprop="articleBody"> 
-		<header class="article-info clearfix">
-  <h1 itemprop="name">
-    
-      <a href="/2017/11/08/React踩坑记录1-将Const类型的组件改写为Class类型的组件/" title="React踩坑记录1 - 将Const类型的组件改写为Class类型的组件" itemprop="url">React踩坑记录1 - 将Const类型的组件改写为Class类型的组件</a>
-  </h1>
-  <p class="article-author">By
-    
-      <a href="http://mingjun97.github.io" title="mingjun97">mingjun97</a>
-    </p>
-  <p class="article-time">
-    <time datetime="2017-11-08T08:39:09.000Z" itemprop="datePublished">2017-11-08</time>
-    Updated:<time datetime="2017-11-09T16:01:40.716Z" itemprop="dateModified">2017-11-10</time>
-    
-  </p>
+<body class="post-template">
+
+  <header class="site-head"  style="background-image: url(//blog.ghost.org/content/images/2013/Nov/cover.png)" >
+    <div class="vertical">
+        <div class="site-head-content inner">
+             <a class="blog-logo" href="/"><img src="//blog.ghost.org/content/images/2013/Nov/bloglogo_1-1.png" alt="Blog Logo"/></a> 
+            <h1 class="blog-title">mingjun97的blog</h1>
+            <h2 class="blog-description">日常填坑的各种记录</h2>
+        </div>
+    </div>
 </header>
-	<div class="article-content">
-		
-		
-		<div id="toc" class="toc-article">
-			<strong class="toc-title">Contents</strong>
-		<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#背景"><span class="toc-number">1.</span> <span class="toc-text">背景</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#修改过程"><span class="toc-number">2.</span> <span class="toc-text">修改过程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#旧代码"><span class="toc-number">2.1.</span> <span class="toc-text">旧代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改后的代码"><span class="toc-number">2.2.</span> <span class="toc-text">魔改后的代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改思路"><span class="toc-number">2.3.</span> <span class="toc-text">魔改思路</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#最后"><span class="toc-number">3.</span> <span class="toc-text">最后</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#更新"><span class="toc-number">4.</span> <span class="toc-text">更新</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#刚刚发现的参考链接"><span class="toc-number">4.1.</span> <span class="toc-text">刚刚发现的参考链接</span></a></li></ol></li></ol>
-		</div>
-		
-		<h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>博主没系统学过JavaScript，但是由于项目需要所以利用Admin-On-Rest框架进行编写程序，该框架基于React，利用JSX进行编写，在编写的时候由于不懂JS所以回踩到很多很多的坑。排坑过程记录一下，方便有其他像我这样强行开车的同学跳坑而出。</p>
+  
+
+<main class="content" role="main">
+  <article class="post">
+    <span class="post-meta">
+      <time datetime="2017-11-08T08:39:09.000Z" itemprop="datePublished">
+          2017-11-08
+      </time>
+    
+    
+    | 
+    <a href='/tags/React/'>React</a>,
+    
+    <a href='/tags/JSX/'>JSX</a>,
+    
+    <a href='/tags/Admin-On-Rest/'>Admin-On-Rest</a>
+    
+    
+</span>
+    <h1 class="post-title">React踩坑记录1 - 将Const类型的组件改写为Class类型的组件</h1>
+    <section class="post-content">
+      <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>博主没系统学过JavaScript，但是由于项目需要所以利用Admin-On-Rest框架进行编写程序，该框架基于React，利用JSX进行编写，在编写的时候由于不懂JS所以回踩到很多很多的坑。排坑过程记录一下，方便有其他像我这样强行开车的同学跳坑而出。</p>
 <h1 id="修改过程"><a href="#修改过程" class="headerlink" title="修改过程"></a>修改过程</h1><p>直接利用Admin-On-Rest-demo魔改的，在一个List中需要添加几个按钮，demo中将该按钮写成了const类型的IconButton，我需要自己添加一些点击后的业务逻辑，所以需要将其修改为Class类型。</p>
 <h2 id="旧代码"><a href="#旧代码" class="headerlink" title="旧代码"></a>旧代码</h2><p>魔改源代码路径：<br><figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./admin-<span class="keyword">on</span>-<span class="built_in">rest</span>-demo/src/buttons/EditButton.js</span><br></pre></td></tr></table></figure></p>
 <p>魔改源代码内容：<br><figure class="highlight xquery"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> React from <span class="string">'react'</span>;</span><br><span class="line"><span class="keyword">import</span> PropTypes from <span class="string">'prop-types'</span>;</span><br><span class="line"><span class="keyword">import</span> &#123; Link &#125; from <span class="string">'react-router-dom'</span>;</span><br><span class="line"><span class="keyword">import</span> IconButton from <span class="string">'material-ui/IconButton'</span>;</span><br><span class="line"><span class="keyword">import</span> &#123;cyan50<span class="number">0</span>&#125; from <span class="string">'material-ui/styles/colors'</span>;</span><br><span class="line"><span class="keyword">import</span> ContentCreate from <span class="string">'material-ui/svg-icons/content/create'</span>;</span><br><span class="line"></span><br><span class="line">const EditButton = (&#123; basePath = <span class="string">''</span>, record = &#123;&#125; &#125;) =&gt; (</span><br><span class="line">    &lt;IconButton</span><br><span class="line">        containerElement=&#123;&lt;Link to=&#123;`$&#123;basePath&#125;/$&#123;record.id&#125;`&#125; /&gt;&#125;</span><br><span class="line">        style=&#123;&#123; overflow: <span class="string">'inherit'</span> &#125;&#125;</span><br><span class="line">    &gt;</span><br><span class="line">        &lt;ContentCreate color=&#123;cyan50<span class="number">0</span>&#125; /&gt;</span><br><span class="line">    &lt;/IconButton&gt;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line">EditButton.propTypes = &#123;</span><br><span class="line">    basePath: PropTypes.string,</span><br><span class="line">    record: PropTypes.object,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">EditButton.defaultProps = &#123;</span><br><span class="line">    style: &#123; padding: <span class="number">0</span> &#125;,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">export <span class="keyword">default</span> EditButton;</span><br></pre></td></tr></table></figure></p>
@@ -99,213 +68,65 @@
 <p>就可以从props中直接取出属性来啦，避免了很多很多很多的麻烦。<br>这里提供了一个思路，回头试验一下<br><figure class="highlight coffeescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">console</span>.log(<span class="class"><span class="keyword">class</span>);</span></span><br></pre></td></tr></table></figure></p>
 <p>看看能不能得到更令我惊喜的其他结果。</p>
 <h2 id="刚刚发现的参考链接"><a href="#刚刚发现的参考链接" class="headerlink" title="刚刚发现的参考链接"></a>刚刚发现的参考链接</h2><p><a href="https://www.cnblogs.com/wonyun/p/5930333.html" target="_blank" rel="external">https://www.cnblogs.com/wonyun/p/5930333.html</a></p>
-  
-	</div>
-		<footer class="article-footer clearfix">
 
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/React/">React</a><a href="/tags/JSX/">JSX</a><a href="/tags/Admin-On-Rest/">Admin-On-Rest</a>
-  </div>
-
-
-
-
-<div class="article-share" id="share">
-
-  <div data-url="http://mingjun97.github.io/2017/11/08/React踩坑记录1-将Const类型的组件改写为Class类型的组件/" data-title="React踩坑记录1 - 将Const类型的组件改写为Class类型的组件 | mingjun97的blog" data-tsina="" class="share clearfix">
-  </div>
-
-</div>
-</footer>   	       
-	</article>
-	
-<nav class="article-nav clearfix">
- 
- <div class="prev" >
- <a href="/2018/05/02/React踩坑记录2-this-setState-频繁刷新导致性能下降/" title="React踩坑记录2 - this.setState()频繁刷新导致性能下降">
-  <strong>PREVIOUS:</strong><br/>
-  <span>
-  React踩坑记录2 - this.setState()频繁刷新导致性能下降</span>
-</a>
-</div>
-
-
+    </section>
+    <footer class="post-footer">
+      <section class="author">
+    <h4>mingjun97</h4>
+    <p>A designer, developer and entrepreneur. Spends his time travelling the world with a bag of kites. Likes journalism and publishing platforms.</p>
+</section>
+      <section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://mingjun97.github.io/2017/11/08/React踩坑记录1-将Const类型的组件改写为Class类型的组件/"
+       onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://mingjun97.github.io/2017/11/08/React踩坑记录1-将Const类型的组件改写为Class类型的组件/"
+       onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://mingjun97.github.io/2017/11/08/React踩坑记录1-将Const类型的组件改写为Class类型的组件/"
+       onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>
+    </footer>
+  </article>
+  <nav class="pagination" role="pagination">
+    
+    <a class="newer-posts" href="/2018/05/02/React踩坑记录2-this-setState-频繁刷新导致性能下降/">
+        ← React踩坑记录2 - this.setState()频繁刷新导致性能下降
+    </a>
+    
+    <span class="page-number">•</span>
+    
 </nav>
+  <div id="comment" class="comments-area">
+    <h1 class="title"><a href="#disqus_comments" name="disqus_comments">Comments</a></h1>
 
-	
-</div>  
+    
+</div>
+</main>
 
-      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
 
-  <div id="toc" class="toc-aside">
-  <strong class="toc-title">Contents</strong>
-  <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#背景"><span class="toc-number">1.</span> <span class="toc-text">背景</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#修改过程"><span class="toc-number">2.</span> <span class="toc-text">修改过程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#旧代码"><span class="toc-number">2.1.</span> <span class="toc-text">旧代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改后的代码"><span class="toc-number">2.2.</span> <span class="toc-text">魔改后的代码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#魔改思路"><span class="toc-number">2.3.</span> <span class="toc-text">魔改思路</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#最后"><span class="toc-number">3.</span> <span class="toc-text">最后</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#更新"><span class="toc-number">4.</span> <span class="toc-text">更新</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#刚刚发现的参考链接"><span class="toc-number">4.1.</span> <span class="toc-text">刚刚发现的参考链接</span></a></li></ol></li></ol>
+  
+<footer class="site-footer">
+  
+  <div class="inner">
+     <section class="copyright">All content copyright <a href="/">mingjun97的blog</a> &copy; 2014 &bull; All rights reserved.</section>
+     <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/">Hexo</a></section>
   </div>
-
-<div id="asidepart">
-<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
-<aside class="clearfix">
-
-  
-
-  
-<div class="tagslist">
-	<p class="asidetitle">Tags</p>
-		<ul class="clearfix">
-		
-			<li><a href="/tags/Admin-On-Rest/" title="Admin-On-Rest">Admin-On-Rest<sup>1</sup></a></li>
-		
-			<li><a href="/tags/JSX/" title="JSX">JSX<sup>1</sup></a></li>
-		
-			<li><a href="/tags/React/" title="React">React<sup>1</sup></a></li>
-		
-		</ul>
-</div>
-
-
-  <div class="rsspart">
-	<a href="" target="_blank" title="rss">RSS</a>
-</div>
-
-</aside>
-</div>
-    </div>
-    <footer><div id="footer" >
-	
-	<div class="line">
-		<span></span>
-		<div class="author"></div>
-	</div>
-	
-	
-	<div class="social-font clearfix">
-		
-		
-		
-		
-		
-	</div>
-		<p class="copyright">Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/A-limon/pacman" target="_blank" title="Pacman">Pacman</a> © 2018 
-		
-		<a href="http://mingjun97.github.io" target="_blank" title="mingjun97">mingjun97</a>
-		
-		</p>
-</div>
 </footer>
-    <script src="/js/jquery-2.1.0.min.js"></script>
-<script type="text/javascript">
-$(document).ready(function(){ 
-  $('.navbar').click(function(){
-    $('header nav').toggleClass('shownav');
-  });
-  var myWidth = 0;
-  function getSize(){
-    if( typeof( window.innerWidth ) == 'number' ) {
-      myWidth = window.innerWidth;
-    } else if( document.documentElement && document.documentElement.clientWidth) {
-      myWidth = document.documentElement.clientWidth;
-    };
-  };
-  var m = $('#main'),
-      a = $('#asidepart'),
-      c = $('.closeaside'),
-      o = $('.openaside');
-  $(window).resize(function(){
-    getSize(); 
-    if (myWidth >= 1024) {
-      $('header nav').removeClass('shownav');
-    }else
-    {
-      m.removeClass('moveMain');
-      a.css('display', 'block').removeClass('fadeOut');
-      o.css('display', 'none');
-      
-      $('#toc.toc-aside').css('display', 'none');
-        
-    }
-  });
-  c.click(function(){
-    a.addClass('fadeOut').css('display', 'none');
-    o.css('display', 'block').addClass('fadeIn');
-    m.addClass('moveMain');
-  });
-  o.click(function(){
-    o.css('display', 'none').removeClass('beforeFadeIn');
-    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
-    m.removeClass('moveMain');
-  });
-  $(window).scroll(function(){
-    o.css("top",Math.max(80,260-$(this).scrollTop()));
-  });
-});
-</script>
 
-<script type="text/javascript">
-$(document).ready(function(){ 
-  var ai = $('.article-content>iframe'),
-      ae = $('.article-content>embed'),
-      t  = $('#toc'),
-      h  = $('article h2')
-      ah = $('article h2'),
-      ta = $('#toc.toc-aside'),
-      o  = $('.openaside'),
-      c  = $('.closeaside');
-  if(ai.length>0){
-    ai.wrap('<div class="video-container" />');
-  };
-  if(ae.length>0){
-   ae.wrap('<div class="video-container" />');
-  };
-  if(ah.length==0){
-    t.css('display','none');
-  }else{
-    c.click(function(){
-      ta.css('display', 'block').addClass('fadeIn');
-    });
-    o.click(function(){
-      ta.css('display', 'none');
-    });
-    $(window).scroll(function(){
-      ta.css("top",Math.max(140,320-$(this).scrollTop()));
-    });
-  };
-});
-</script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 
-
-<script type="text/javascript">
-$(document).ready(function(){ 
-  var $this = $('.share'),
-      url = $this.attr('data-url'),
-      encodedUrl = encodeURIComponent(url),
-      title = $this.attr('data-title'),
-      tsina = $this.attr('data-tsina');
-  var html = [
-  '<a href="#" class="overlay" id="qrcode"></a>',
-  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
-  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
-  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
-  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
-  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
-  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
-  '<span title="Share to"></span>'
-  ].join('');
-  $this.append(html);
-  $('.article-share-qrcode').click(function(){
-    var imgSrc = $('#qrcode-pic').attr('data-src');
-    $('#qrcode-pic').attr('src', imgSrc);
-    $('#qrcode-pic').load(function(){
-        $('.qrcode strong').text(' ');
-    });
-  });
-});     
-</script>
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/index.js"></script>
 
 
 
 
 
 
-  </body>
+</body>
 </html>
