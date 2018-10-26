@@ -4,7 +4,7 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
-  <title>React踩坑记录2 - this.setState()频繁刷新导致性能下降 | mingjun97的blog</title>
+  <title>Net Filter程序编写 | mingjun97的blog</title>
   <meta name="description" content="日常填坑的各种记录" />
   <meta name="HandheldFriendly" content="True" />
   <meta name="MobileOptimized" content="320" />
@@ -39,18 +39,15 @@
 <main class="content" role="main">
   <article class="post">
     <span class="post-meta">
-      <time datetime="2018-05-03T04:34:09.000Z" itemprop="datePublished">
-          2018-05-02
+      <time datetime="2018-09-11T22:39:05.000Z" itemprop="datePublished">
+          2018-09-11
       </time>
     
 </span>
-    <h1 class="post-title">React踩坑记录2 - this.setState()频繁刷新导致性能下降</h1>
+    <h1 class="post-title">Net Filter程序编写</h1>
     <section class="post-content">
-      <h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>这两天在做软件安全实验，实验要求写一个嗅探器+arp欺骗的工具。老师要求是用<code>winpcap</code>来实现。偷懒的我决定用<code>python3</code>的<code>scapy</code>模块来实现相关的功能。介于老师有要求写出漂亮的界面，所以最后决定使用<code>flask</code>+<code>semantic-ui</code>+<code>socketio</code>+<code>react</code>来实现套件功能。</p>
-<h1 id="踩坑实况"><a href="#踩坑实况" class="headerlink" title="踩坑实况"></a>踩坑实况</h1><h2 id="背景描述"><a href="#背景描述" class="headerlink" title="背景描述"></a>背景描述</h2><p>由于后台使用了scapy进行抓包，使用prn参数的回调功能结合socketio来实现包的广播（这里有另外一个坑），但是如果短时间内抓到大量的包的话，会导致前端频繁的进行刷新，进而导致页面假死，用户使用体验极差。（CPU占用长时间100%）</p>
-<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>考虑到之前不知道在哪看到的 <code>this.setState()</code> 函数会使得页面进行一次刷新。而直接通过<code>this.state.xxx.push()</code> 不会使得页面刷新，所以这里就将socketio接收到消息的事件通过函数将内容push到数组里面。</p>
-<p>然后设定一个计时器，定时使用<code>this.setState()</code>更新一个为用到的数据，来实现页面的刷新。这样能同时兼顾用户可用性和数据包接收。（CPU占用稳定在40%左右，不得不承认，基于web的抓包展示工具还是有些瓶颈在其中）。</p>
-<p>后来发现单个页面过长也会导致性能下降（一次在一个页面内渲染好几万个包），所以又引入了分页机制。最后整体来看总算稳定了。</p>
+      <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>今年的网络安全课程设计要求设计一个通过Net Filter API接口执行防火墙功能的程序，并且支持动态的规则调整、日志记录、静态NAT等功能。</p>
+<p>环境使用ubuntu系统，在mac下使用Fusion虚拟机程序进行模拟。安装<code>openssh-server</code></p>
 
     </section>
     <footer class="post-footer">
@@ -60,15 +57,15 @@
 </section>
       <section class="share">
     <h4>Share this post</h4>
-    <a class="icon-twitter" href="http://twitter.com/share?url=http://mingjun97.github.io/2018/05/02/React踩坑记录2-this-setState-频繁刷新导致性能下降/"
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://mingjun97.github.io/2018/09/11/Net-Filter程序编写/"
        onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
         <span class="hidden">Twitter</span>
     </a>
-    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://mingjun97.github.io/2018/05/02/React踩坑记录2-this-setState-频繁刷新导致性能下降/"
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://mingjun97.github.io/2018/09/11/Net-Filter程序编写/"
        onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
         <span class="hidden">Facebook</span>
     </a>
-    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://mingjun97.github.io/2018/05/02/React踩坑记录2-this-setState-频繁刷新导致性能下降/"
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://mingjun97.github.io/2018/09/11/Net-Filter程序编写/"
        onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
         <span class="hidden">Google+</span>
     </a>
@@ -77,14 +74,10 @@
   </article>
   <nav class="pagination" role="pagination">
     
-    <a class="newer-posts" href="/2018/09/06/高并发API测试脚本/">
-        ← 高并发API测试脚本
-    </a>
-    
     <span class="page-number">•</span>
     
-    <a class="older-posts" href="/2017/11/08/React踩坑记录1-将Const类型的组件改写为Class类型的组件/">
-        React踩坑记录1 - 将Const类型的组件改写为Class类型的组件 →
+    <a class="older-posts" href="/2018/09/06/高并发API测试脚本/">
+        高并发API测试脚本 →
     </a>
     
 </nav>
