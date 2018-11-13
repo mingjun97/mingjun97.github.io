@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+  <title>灯塔党建题库爬取代码 | mingjun97的blog</title>
+  <meta name="description" content="日常填坑的各种记录" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="MobileOptimized" content="320" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" type="text/css" href="/css/screen.css" />
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Noto+Serif:400,700,400italic|Open+Sans:700,400" />
+
+  <meta name="generator" content="mingjun97的blog">
+
+  
+  
+  
+
+  
+</head>
+
+
+<body class="post-template">
+
+  <header class="site-head"  style="background-image: url(//blog.ghost.org/content/images/2013/Nov/cover.png)" >
+    <div class="vertical">
+        <div class="site-head-content inner">
+             <a class="blog-logo" href="/"><img src="//lyric.today/img/logo.png" alt="Blog Logo"/></a> 
+            <h1 class="blog-title">mingjun97的blog</h1>
+            <h2 class="blog-description">日常填坑的各种记录</h2>
+        </div>
+    </div>
+</header>
+  
+
+<main class="content" role="main">
+  <article class="post">
+    <span class="post-meta">
+      <time datetime="2018-11-13T07:56:34.000Z" itemprop="datePublished">
+          2018-11-12
+      </time>
+    
+</span>
+    <h1 class="post-title">灯塔党建题库爬取代码</h1>
+    <section class="post-content">
+      <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> urllib2</span><br><span class="line"><span class="keyword">import</span> json</span><br><span class="line"></span><br><span class="line">url = <span class="string">"http://xxjs.dtdjzx.gov.cn/quiz-api/subject_info/randomList"</span></span><br><span class="line">url_l = <span class="string">'http://xxjs.dtdjzx.gov.cn/quiz-api/subject_info/list?chapterId=7j0d8qp4r2g28ogjt5hq0cbhne'</span></span><br><span class="line"></span><br><span class="line">headers = &#123;</span><br><span class="line">    <span class="string">"Host"</span>: <span class="string">"xxjs.dtdjzx.gov.cn"</span>,</span><br><span class="line">    <span class="string">"Accept"</span>: <span class="string">"*/*"</span>,</span><br><span class="line">    <span class="string">"version-code"</span>: <span class="string">"75"</span>,</span><br><span class="line">    <span class="string">"Accept-Language"</span>: <span class="string">"en-SG;q=1, zh-Hans-SG;q=0.9"</span>,</span><br><span class="line">    <span class="string">"Accept-Encoding"</span>: <span class="string">"gzip, deflate"</span>,</span><br><span class="line">    <span class="string">"device-name"</span>: <span class="string">"iPhone"</span>,</span><br><span class="line">    <span class="string">"system-version"</span>: <span class="string">"11.2.5"</span>,</span><br><span class="line">    <span class="string">"device-model"</span>: <span class="string">"iPhone"</span>,</span><br><span class="line">    <span class="string">"Connection"</span>: <span class="string">"close"</span>,</span><br><span class="line">    <span class="string">"version-name"</span>: <span class="string">"1.3.7"</span>,</span><br><span class="line">    <span class="string">"system-type"</span>: <span class="string">"iOS"</span>,</span><br><span class="line">    <span class="string">"User-Agent"</span>: <span class="string">"FuShengJiaXin/1.3.7 (iPhone; iOS 11.2.5; Scale/2.00)"</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">answers = dict()</span><br><span class="line">request = urllib2.Request(url_l, <span class="keyword">None</span>, headers)</span><br><span class="line">response = urllib2.urlopen(request)</span><br><span class="line">response = json.loads(response.read())</span><br><span class="line">question_list = response[<span class="string">'data'</span>][<span class="string">'subjectInfoList'</span>]</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> t <span class="keyword">in</span> range(<span class="number">1000</span>):</span><br><span class="line">    request = urllib2.Request(url, <span class="keyword">None</span>, headers)</span><br><span class="line">    response = urllib2.urlopen(request)</span><br><span class="line">    response = json.loads(response.read())</span><br><span class="line">    data = response[<span class="string">'data'</span>][<span class="string">'subjectInfoList'</span>]</span><br><span class="line">    <span class="keyword">for</span> item <span class="keyword">in</span> data:</span><br><span class="line">        question = dict()</span><br><span class="line">        question[<span class="string">'question'</span>] = item[<span class="string">'subjectTitle'</span>]</span><br><span class="line">        question[<span class="string">'Right'</span>] = []</span><br><span class="line">        options = item[<span class="string">'optionInfoList'</span>]</span><br><span class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> options:</span><br><span class="line">            <span class="keyword">if</span> i[<span class="string">'isRight'</span>] == <span class="string">u'1'</span>:</span><br><span class="line">                question[<span class="string">'Right'</span>].append((i[<span class="string">'optionType'</span>], i[<span class="string">'optionTitle'</span>] + <span class="string">u'  v'</span>))</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                question[<span class="string">'Right'</span>].append((i[<span class="string">'optionType'</span>], i[<span class="string">'optionTitle'</span>]))</span><br><span class="line">        answers[json.dumps(question[<span class="string">'question'</span>]).decode(<span class="string">'unicode-escape'</span>)[<span class="number">1</span>:<span class="number">-1</span>]] = <span class="string">"A."</span> + json.dumps(question[<span class="string">'Right'</span>][<span class="number">0</span>][<span class="number">1</span>]).decode(<span class="string">'unicode-escape'</span>)[<span class="number">1</span>:<span class="number">-1</span>] + <span class="string">'\n'</span> + \</span><br><span class="line">                                                                                   <span class="string">"B."</span> + json.dumps(question[<span class="string">'Right'</span>][<span class="number">1</span>][<span class="number">1</span>]).decode(<span class="string">'unicode-escape'</span>)[<span class="number">1</span>:<span class="number">-1</span>] + <span class="string">'\n'</span> + \</span><br><span class="line">                                                                                   <span class="string">"C."</span> + json.dumps(question[<span class="string">'Right'</span>][<span class="number">2</span>][<span class="number">1</span>]).decode(<span class="string">'unicode-escape'</span>)[<span class="number">1</span>:<span class="number">-1</span>] + <span class="string">'\n'</span> + \</span><br><span class="line">                                                                                   <span class="string">"D."</span> + json.dumps(question[<span class="string">'Right'</span>][<span class="number">3</span>][<span class="number">1</span>]).decode(<span class="string">'unicode-escape'</span>)[<span class="number">1</span>:<span class="number">-1</span>]</span><br><span class="line">    <span class="keyword">if</span> len(answers) == <span class="number">200</span>:</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">count = <span class="number">1</span></span><br><span class="line"><span class="keyword">for</span> item <span class="keyword">in</span> question_list:</span><br><span class="line">    print(str(count) + <span class="string">'.'</span> + item[<span class="string">'subjectTitle'</span>])</span><br><span class="line">    print(answers[item[<span class="string">'subjectTitle'</span>]])</span><br><span class="line">    count = count + <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
+    </section>
+    <footer class="post-footer">
+      <section class="author">
+    <h4>mingjun97</h4>
+    <p>信息安全在读本科生 略懂CTF 全栈开发</p>
+</section>
+      <section class="share">
+    <h4>Share this post</h4>
+    <a class="icon-twitter" href="http://twitter.com/share?url=http://mingjun97.github.io/2018/11/12/灯塔党建题库爬取代码/"
+       onclick="window.open(this.href, 'twitter-share', 'width=550,height=235');return false;">
+        <span class="hidden">Twitter</span>
+    </a>
+    <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u=http://mingjun97.github.io/2018/11/12/灯塔党建题库爬取代码/"
+       onclick="window.open(this.href, 'facebook-share','width=580,height=296');return false;">
+        <span class="hidden">Facebook</span>
+    </a>
+    <a class="icon-google-plus" href="https://plus.google.com/share?url=http://mingjun97.github.io/2018/11/12/灯塔党建题库爬取代码/"
+       onclick="window.open(this.href, 'google-plus-share', 'width=490,height=530');return false;">
+        <span class="hidden">Google+</span>
+    </a>
+</section>
+    </footer>
+  </article>
+  <nav class="pagination" role="pagination">
+    
+    <span class="page-number">•</span>
+    
+    <a class="older-posts" href="/2018/09/11/Net-Filter程序编写/">
+        Net Filter程序编写 →
+    </a>
+    
+</nav>
+  <div id="comment" class="comments-area">
+    <h1 class="title"><a href="#disqus_comments" name="disqus_comments">Comments</a></h1>
+
+    
+    <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    </div>
+    
+</div>
+</main>
+
+
+  
+<footer class="site-footer">
+  
+  <div class="inner">
+     <section class="copyright">All content copyright <a href="/">mingjun97的blog</a> &copy; 2014 &bull; All rights reserved.</section>
+     <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/">Hexo</a></section>
+  </div>
+</footer>
+
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
+<script type="text/javascript" src="/js/index.js"></script>
+
+
+
+<script type="text/javascript">
+    var disqus_shortname = 'lyric-today';
+
+    (function(){
+        var dsq = document.createElement('script');
+        dsq.type = 'text/javascript';
+        dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+</body>
+</html>
