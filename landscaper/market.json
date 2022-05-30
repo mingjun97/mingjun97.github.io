@@ -1,0 +1,23 @@
+[
+    {
+        "name": "mojoconsole-plus",
+        "tags": ["Cheat", "Command", "Helper"],
+        "releases": "releases/latest",
+        "github": "gc-mojoconsole/gc-mojoconsole-backend",
+        "description": "This plugin provide interface for external tools to execute console commands."
+    },
+    {
+        "name": "opencommand-plugin",
+        "tags": ["Cheat", "Command", "Helper"],
+        "releases": "releases/latest",
+        "github": "jie65535/gc-opencommand-plugin",
+        "description": "blablabla"
+    },
+    {
+        "name": "GCAuth",
+        "tags": ["Auth"],
+        "releases": "releases/latest",
+        "github": "exzork/GCAuth",
+        "description": "Authenticator for grasscutter."
+    }
+]
