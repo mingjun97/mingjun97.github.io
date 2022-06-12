@@ -19,5 +19,26 @@
         "releases": "releases/latest",
         "github": "exzork/GCAuth",
         "description": "Authenticator for grasscutter."
+    },
+    {
+        "name": "GCAuth-OAuth",
+        "tags": ["Auth"],
+        "releases": "releases/latest",
+        "github": "Xtao-Team/GCAuth-OAuth",
+        "description": "The in-game login system for Grasscutter is based on oauth and GCAuth."
+    },
+    {
+        "name": "MeaNotice",
+        "tags": ["Announcement"],
+        "releases": "releases/latest",
+        "github": "Coooookies/Grasscutter-MeaNotice",
+        "description": "A plugin of Grasscutter for send regular notice."
+    },
+    {
+        "name": "MeaMailPlus",
+        "tags": ["Mail"],
+        "releases": "releases/latest",
+        "github": "Coooookies/Grasscutter-MeaMailPlus",
+        "description": "A plugin of Grasscutter for send in-game mail conveniently"
     }
 ]
