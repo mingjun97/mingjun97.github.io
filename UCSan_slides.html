@@ -65,11 +65,29 @@ footer.foot{flex:none;display:flex;justify-content:space-between;
 /* ============================================================ fragments / steps */
 [data-step]{opacity:0;transform:translateY(.9rem);transition:opacity .45s ease,transform .45s ease;pointer-events:none}
 [data-step].shown{opacity:1;transform:none;pointer-events:auto}
+@page{size:1280px 720px;margin:0}
 @media print{
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
   body{overflow:visible;background:#fff}
   #stage{position:static;transform:none !important;width:1280px;height:auto;box-shadow:none}
-  .slide{display:flex !important;position:relative;width:1280px;height:720px;page-break-after:always}
+  .slide{display:flex !important;position:relative;width:1280px;height:720px;
+    page-break-after:always;break-inside:avoid;animation:none !important}
+  .slide:last-of-type{page-break-after:auto}
+  /* every animated / step-gated element prints in its final state */
   [data-step]{opacity:1 !important;transform:none !important}
+  .appear{opacity:1 !important}
+  .arrow{stroke-dashoffset:0 !important;transition:none !important}
+  .swap-a{opacity:0 !important}.swap-b{opacity:1 !important}
+  .bar-fill{width:var(--w) !important;transition:none !important}
+  .nbar{transform:none !important;transition:none !important}
+  .wdot{opacity:1 !important}
+  #code8 .ln.add{opacity:1 !important;transform:none !important}
+  .pulse,.obj.phantom rect.bx,.hero-list .hnode,.hero-list .harr{animation:none !important}
+  .hero-list .hnode{opacity:1 !important}
+  .hero-list .harr{stroke-dashoffset:0 !important}
+  /* hide motion-only artifacts */
+  .flowdot,.sweep,.coderef{display:none !important}
+  circle:has(> animateMotion){display:none !important}
   #progress,#counter,#hint,#toc,#notes,#nav{display:none !important}
 }
 
@@ -104,7 +122,7 @@ footer.foot{flex:none;display:flex;justify-content:space-between;
 .code .ln.boost{color:#C8F5CC;background:rgba(143,214,148,.14);font-weight:700}
 
 /* ============================================================ SVG diagram bits */
-svg text{font-family:var(--mono)}
+svg text{font-family:var(--mono);font-variant-ligatures:none;font-feature-settings:"liga" 0,"calt" 0}
 svg .t-sans{font-family:var(--sans)}
 .obj rect.bx{fill:var(--blue-l);stroke:var(--blue);stroke-width:2.5}
 .obj rect.hd{fill:var(--blue);stroke:var(--blue)}
@@ -151,6 +169,12 @@ svg .t-sans{font-family:var(--sans)}
 .pnode.opt{border-style:dashed}
 .parrow{flex:none;width:2.4rem;display:flex;align-items:center;justify-content:center;
   color:var(--orange-br);font-size:1.5rem;font-weight:800}
+/* concrete mini-examples inside pipeline nodes */
+.pnode .ex{display:block;background:#1B2433;border-radius:.4rem;margin-top:.5rem;
+  padding:.4rem .5rem;font-family:var(--mono);font-size:.56rem;line-height:1.55;
+  color:#8FD694;text-align:left;font-variant-ligatures:none}
+.pnode .ex span{display:block;margin:0;font-size:inherit;color:inherit;font-family:inherit;line-height:inherit}
+.pnode .ex .d{color:#7E8C9F} .pnode .ex .o{color:#FFAE5C} .pnode .ex .r{color:#FF8E8E}
 
 /* ============================================================ title slide */
 #s1 .hero{flex:1;display:flex;flex-direction:column;justify-content:center;gap:.4rem}
@@ -191,6 +215,20 @@ svg .t-sans{font-family:var(--sans)}
   color:#fff;font-size:.78em;align-items:center;justify-content:center;font-weight:700;
   margin-right:.45em;vertical-align:-.18em;flex:none}
 .card.orange .circ{background:var(--orange)}
+
+/* peek-at-the-code reference (JITI page): hover a moment to zoom in, leave to zoom out */
+.coderef{position:absolute;left:3.2rem;bottom:2.3rem;z-index:30}
+.coderef .tab{display:inline-block;background:var(--navy);color:#CFDDEF;font-size:.66rem;font-weight:700;
+  border-radius:1rem;padding:.32rem .95rem;cursor:pointer;box-shadow:0 .15rem .5rem rgba(20,42,79,.3)}
+.coderef:hover .tab,.coderef.open .tab{background:var(--orange);color:#fff}
+.coderef .pop{position:absolute;left:0;bottom:2.3rem;width:30rem;
+  transform:scale(.04);transform-origin:bottom left;opacity:0;pointer-events:none;
+  transition:transform .32s ease,opacity .28s ease;
+  border-radius:.6rem;box-shadow:0 .8rem 2.4rem rgba(10,21,38,.55)}
+.coderef:hover .pop,.coderef.open .pop{transform:scale(1);opacity:1;pointer-events:auto;
+  transition-delay:.22s}                          /* linger briefly before it zooms in */
+.coderef .pop .code{font-size:.55rem;padding:.7rem .8rem}
+.coderef .ln.rep .strike{color:var(--codedel);text-decoration:line-through}
 
 /* equation slide */
 .eq{display:flex;align-items:stretch;gap:.9rem;margin:1.1rem 0}
@@ -260,6 +298,18 @@ aside.notes{display:none}
 .legend i{display:inline-block;width:.85em;height:.85em;border-radius:.2em;margin-right:.35em;vertical-align:-.08em}
 .nbar{transform:scaleY(0);transform-origin:bottom;transition:transform .8s cubic-bezier(.25,.7,.3,1)}
 .shown .nbar{transform:scaleY(1)}
+
+/* ===== UCR branding ===== */
+:root{
+  --ucr:url(data:image/png;base64,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);
+  --ucr-mono:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAO4AAADwCAYAAAAHMljJAAAL1ElEQVR4nO3d7W9UxxXH8TOsHQzhwRjWLphHe03blFLSqu/7Hofm38qLJq1sWYiKiKZISUNaHiL1QapUVZWStgpKIppUpYUmQCFhIRD8LNs71XXuVma7tne9u/eeM/P9SBYIG3tmPT/f2dlzj50AAfDeD4rI0fRtZMXfh0SkW+x63jn3Qe0/duUzFqB53vs9dcI5kr5tjekxJbhQx3v/vTrhTP7szXtsWhBc5MJ7f6xmS1v9+wDfkvURXHSM935oleedB0VkEw/9xhFctCTgQyHVCC7WxaGQPgQX/8OhkB0ENzIcCoWB4AbIe199bbP2uecBEXF5jw+tI7hGee8PrhLOI3xfw0dwFeNQCKshuApwKIRmEdyMcCiEdiK4bcShELJCcJvEoRA0ILh1eO8HVjmxLYlIT/bfJuBpUQeXQyFYFXxwORRCiIIILodCiI2Z4HIoBCgNLodCgOLgeu+/v0rTrx15jAewpmPB5VAIUBpcDoUApcHlUAgwFFzv/fsiciLb4QCoUZE61mqRSWiB/Pl6/0hvW8AgggsYRHABgwguYBDBBQwiuIBBBBcwiOACBhFcwCCCCxhEcAGDCC5gEMEFDCK4gEEEFzBIVZdHNK74rRdberjKH13i4TbMrfYO733dG3g1LcJ2LL5WApDl4m81qDHNJbAfXsedc9dq/5ErrnJZLfLq1zGymCX2ORNcpfK6KllezO14rK3Mm8MphTRsJTWMIQ9FI/MmuMpoWjiaxpL1vIvK505wFdG4WDSOKSua505wldC8SDSPLda5E1wFtC4Oa2OMCcEFDP7QIrg507goQhhr6HMnuIBBBDdH2n6Kww4qpwKxXsVPu35IJJ/HSnVRu2maO8E1rtGFVP0461f5jQSnaHzO9bBVjmwRa7liZKn80aXg5k1wjWplIYa2iGOcN8FFVMqBhJfgAgafLxNcwCCCG6lQtoyxzp3gGhTCwkNrCC5gEMEFDCK4gEEEFzCI4AIGEVzAIIILGERwAYMILmAQwQUMIriAQQQXMIjgAgYRXMAgujxGjNsD7eKKCxhEcBGdopK+Ua0guIBBBBdRKbZ4tdVyLkBwAYM4VUYUigE8r12J4CJoxcACW0VwYUqeQSwreX6b4DkuYBDBBQwiuICxbXKC4AIGEVzA2NU2QXABY6FNEFzAWGgTvI4LGApsFVdcwFhoEwQXMBbaBMEFDOI5bsQ2Wveb95WpvM7XD/XGgpW44sKUvH9oaEFwAYNXaoKL4JQjuCoTXMDgVZfgAgYRXASpHPh2meACBrfLBBcwiOAiWOWAt8sEFzC4XSa4gEEEF0ErB7pdJriAwe0ywQUMIrgIXjnA7TLBBQxulwmuQVoXE7JDcAGDTAeXKw+PXRbPczWuM9PBBWJFcAGDog6uxi1QFmO3PO9WlAPaLpsP7kYfUG3fCCCq4G4khKGENplHM3Np9uOhVxDBbWZRtmvhaqrGyXLe1pUD2S4H95sMND24jSyido3X0rwRyBVX09ULa+N7pYOK4FrD4rWtHMB2WU1wYw2DpXlbGmvo1ATXChYvNFAV3FhDYWHeFsYY03ZZVXBjXryag6F5bLFSF1ytiySLcWmcu8YxQWFwNS6WLMejae6axtIJZcPbZZXBrT6oeS+cvMaQ97y1jAGGK6eqCyjrn3B5L9xY543GuNXe4b33olAnF7L2RdupuWc971bm0YmxFpWNp8Zx59w188Ft1wOvPaSdmnso845IuMEFYguu2sMpAKsjuIBBBBcwiOACBhFcwCCCCxhEcAGDCC5gEMEFDCK4gEEEFzCI4AIGEVzAIPU30gMR8SJyQ0TuJhfVv537xuCxPXfqXlwJLpCfGRG5LiJfisi2xxcGSr1bZksikrzJsT3Le+K6t94SXCA7d0TklogsicjA0uWdpULBn6i+s3dL45+I4AKdMZ9eTR+KSM/d1w8e2bf98X4RSd6WFQob/+QEF2iPByJyU0TmRGT3/KW+0uauxW9X37lvu7QVwQWaVxGRf4nI50mGrr82cuBo3+fJlTR5VrpsczuS5f2sLC5O1XsXPaeA9SXh+aeIPBGRHU/e6h/Z0TO3TTrG3xLvJtypyZdW+wiCC/y/T9ODJP/emWN7v7v31tAmt3pW2sf/Xpwbc6OTV9b7SIKL2M2mV9NHIrL1/hv7S/3bnuzK7sv7GfFyXrx72f1w8h+N/i+Ci9jcF5F/p6e+exYu9450FyrdOYzjhrjKuBud/vFG/jPBRcgW00Oksoh03/z50OGhXQ++lt9wkl7l7jeyqTLmTk7/tpXPRHARki/SksFk+9s786viyNZn5psoa+gQL5Pi/M/ELb7iRueSl4xaRnBhua73k7SuVz44+9zgiYHbh0RcBodIjfJ/Fy/j7tTURLs/M8GFybreh2/uLe3eOr1T1GnfdngtBBda3UtflknqevuXLu8cLhS85ttQH4nIq+IWJtq1HV4LwYUGC+lLMknZ4OZPzx8+cqj3i34xwX8o3o25U5Nns/yqBBe51/XOXe4r9RQWN5v5Vni/JE6uiJMxNzr1hzyGQHCRxSFSEtLPkhtiPj739QPP7bk3aPNh92Xx8lOpLJ12L87eznMkBBcdret9fGFgpHfLbAfresPdDq+F4KJV/xGR2+kdMwOVt3dkVNfbaT553v1LcUtjbnT2HVGG4KIZ82klUlLosOXu6weH921/nGFdb4bb4YJPXs5JtvcqEVw0XNc7f7FvZHP3Yh51vVn4q7jKmBudPi8GEFxUVdJywSSsXddfKx062nc/x7reLPh5EfeGbFoadydn3hNDCG68vkyDmlQk7Zx8q39ke89cj0TB3xMvp8W5CffCZPLSlDkEN9K63u/03znkgjhEaob/U/ra6wUxjuCGaTY9RHosIs8+fHPvsM663iy3w5UfuZPT1yQQBDfAut6Fy73D3YWK5rreDPjlvk3i5KzV7fBaCK7Nm8NvpDeHP/Pp+cOH7dT1ZsE33LfJMoKr36M0qEld766Zi8XS1u55O3W9ivs2WUZwdQmorld/3ybLCG6+ZlbU9W5Pf+mT8breLPgotsNrIbg51vUuXdk5VNjkI3tJpsW+TRU3Hst2eC0Et3MW0uemD9O63iPh1fVmItrt8FoIbvs8WFHXu3vuUl+ppyvYut4g+jZZRnA3JsK63vD6NllGcBu/OfxG+mdS11uKp67XdhvTUBHc+m6lB0n+6plj+57fe+tQGDeHK6Kgb5NlBLemrvf+L/YP9z/7JNK63gy3w0uLP8m7b5NlMQb3flrXu5DW9Q5R1xtn3ybLQg/uU3W9N88PHR7qfUBdb2Z0922yLLTgPnnqlz5dLA5T15sHG32bLLMcXJ+GNHn9dNOHr35z8Hjx7qBz2ocdtKviK+Pu1PS5vAcSOkvBnV5u6CWSbLnecc792r+97QcijhNJDdvh5RvVbfVtsqxL9LpdDWkaVBaFxr5NBX+G7XC8wU1+ar+/IqjvOufu5D0o2G9jGqq8gpsU3r+74mr6x5zGgcDbmIYqi+Amz5U/rtn2Jr+gGGb6Nrkg+zZZ1ongTorIX1aE9Hcd+BroqHDamIaqHcH9pOZqmjxXhdW+TQU/HlIb01A1G9zkXtOrNYdIvMAewHbYnZp6Ke+RoH3BvVdzNf1zE58bJvo2TUXbtynU4I4455K7ZhBk36ap6Ps2BRlcQhtg36YX6NsUCi0FGGg7+jaFjOCGuh12i6/QtylcBDcY9G2KCcG1jL5N0SK4lvs2VZbo2xQpgmsKfZvwFYKrHdth1EFwtfdtqiydpo0pahFctdvhKdqYYlUEVwXamKI5BDdX9G3CxhDcfNC3CS0huJmhbxPah+BmtR12boK+TWgXgtsx9G1C5xDctqJvE7JBcNuCvk3IFsFtCX2bkA+Cu9HtsHcv07cJeSG4zfZtGqVvE/JHcBveDk/SxhRqENx6aGMK5QjuU+jbBBsILm1MYVDMwf2qb5NbnKCNKayJMLhsh2FfHMGlbxMCE3hw6duEMAUaXPo2IWwBBZe+TYhHVzDb4YIfcyenP8t7NAAAAAAAAJCG/Rfq8RAAbO1bmAAAAABJRU5ErkJggg==);
+}
+.ucr-title{position:absolute;top:1.5rem;right:3.2rem;width:12.5rem;height:3.95rem;
+  background:var(--ucr) no-repeat right center/contain;z-index:5}
+header.band{position:relative}
+header.band::after{content:"";position:absolute;top:50%;right:3.2rem;transform:translateY(-50%);
+  width:2.5rem;height:2.5rem;background:var(--ucr-mono) no-repeat right center/contain;
+  opacity:.95;pointer-events:none}
 </style>
 </head>
 <body>
@@ -267,6 +317,7 @@ aside.notes{display:none}
 
 <!-- ================================================================ 1 TITLE -->
 <section class="slide dark" id="s1">
+  <div class="ucr-title"></div>
   <div class="hero">
     <span class="badge">USENIX OSDI 2026</span>
     <h1>UCSan</h1>
@@ -433,63 +484,84 @@ aside.notes{display:none}
 </section>
 
 <section class="slide" id="sjp" data-steps="3">
-  <header class="band"><div class="kicker">Two ideas — thirty seconds</div><h2>JITI &amp; pseudo- vs. real pointers</h2></header>
+  <header class="band"><div class="kicker">Two ideas — thirty seconds</div><h2>Just-In-Time Initialization (JITI) &amp; pseudo- vs. real pointers</h2></header>
   <div class="body" style="justify-content:center">
     <div class="scene" style="flex:0 0 auto">
-      <svg viewBox="0 0 1160 318">
+      <svg viewBox="0 0 1160 344">
         <defs>
           <marker id="jb" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#2E6FB5"/></marker>
           <marker id="jg" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#2E7D32"/></marker>
+          <marker id="jo" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#C55A11"/></marker>
         </defs>
         <!-- what the program sees -->
-        <rect x="20" y="56" width="300" height="152" rx="12" fill="#1B2433"/>
-        <text x="170" y="88" font-size="15" fill="#7E8C9F" text-anchor="middle" class="t-sans">what the program sees</text>
-        <rect x="60" y="104" width="220" height="44" rx="8" fill="#26334A" stroke="#FFAE5C" stroke-width="2"/>
-        <text x="170" y="132" font-size="18" fill="#FFAE5C" text-anchor="middle">head = 0x1</text>
-        <text x="170" y="178" font-size="15.5" fill="#FFAE5C" text-anchor="middle" class="t-sans" font-weight="bold">pseudo-pointer</text>
-        <text x="170" y="198" font-size="13" fill="#9FB2CC" text-anchor="middle" class="t-sans">a logical address — addresses nothing real</text>
+        <rect x="20" y="56" width="300" height="158" rx="12" fill="#1B2433"/>
+        <text x="170" y="84" font-size="16" fill="#9FB2CC" text-anchor="middle" class="t-sans">what the program sees — pseudo-pointers</text>
+        <rect x="55" y="94" width="230" height="42" rx="8" fill="#26334A" stroke="#FFAE5C" stroke-width="2"/>
+        <text x="170" y="122" font-size="20" fill="#FFAE5C" text-anchor="middle">head = 0x1</text>
+        <g class="appear" data-on="1+">
+          <rect x="55" y="142" width="230" height="42" rx="8" fill="#26334A" stroke="#FFAE5C" stroke-width="2"/>
+          <text x="170" y="170" font-size="20" fill="#FFAE5C" text-anchor="middle">curr = -3</text>
+        </g>
+        <text x="170" y="204" font-size="14" fill="#9FB2CC" text-anchor="middle" class="t-sans">logical values — point at nothing real</text>
         <!-- the translator -->
-        <rect x="430" y="56" width="280" height="152" rx="12" fill="#fff" stroke="#2E6FB5" stroke-width="2.5"/>
-        <text x="570" y="88" font-size="17" font-weight="bold" fill="#142A4F" text-anchor="middle" class="t-sans">shadow pointer head_s</text>
-        <text x="570" y="122" font-size="15" fill="#2E6FB5" text-anchor="middle">↦ obj1 · base = −3</text>
-        <text x="570" y="156" font-size="13.5" fill="#5A626E" text-anchor="middle" class="t-sans">knows the real backing object;</text>
-        <text x="570" y="176" font-size="13.5" fill="#5A626E" text-anchor="middle" class="t-sans">shared by all aliases — a segment register</text>
-        <!-- memory: nothing, until JITI -->
-        <g class="swap-a" data-on="1+">
+        <rect x="430" y="56" width="280" height="158" rx="12" fill="#fff" stroke="#2E6FB5" stroke-width="2.5"/>
+        <text x="570" y="88" font-size="19" font-weight="bold" fill="#142A4F" text-anchor="middle" class="t-sans">shadow pointer head_s</text>
+        <text class="swap-a" data-on="2+" x="570" y="124" font-size="18" fill="#8A93A0" text-anchor="middle">↦ ∅ (no object yet)</text>
+        <text class="swap-b" data-on="2+" x="570" y="124" font-size="18" fill="#2E6FB5" text-anchor="middle">↦ obj1 · base = −3</text>
+        <text x="570" y="158" font-size="15.5" fill="#5A626E" text-anchor="middle" class="t-sans">knows the real backing object;</text>
+        <text x="570" y="180" font-size="15.5" fill="#5A626E" text-anchor="middle" class="t-sans">shared by all aliases —</text>
+        <text x="570" y="202" font-size="15.5" fill="#5A626E" text-anchor="middle" class="t-sans">works like a segment register</text>
+        <!-- memory: nothing, until Just-In-Time Initialization -->
+        <g class="swap-a" data-on="2+">
           <g class="obj ghost"><rect class="hd" x="820" y="36" width="300" height="44" rx="8"/><rect class="bx" x="820" y="80" width="300" height="112"/>
-          <text x="970" y="65" fill="#fff" font-size="19" font-weight="bold" text-anchor="middle" class="t-sans">memory: not allocated</text>
+          <text x="970" y="66" fill="#fff" font-size="20" font-weight="bold" text-anchor="middle" class="t-sans">memory: not allocated</text>
           <line x1="970" y1="80" x2="970" y2="192"/><line x1="820" y1="136" x2="1120" y2="136"/>
-          <text x="895" y="114" font-size="19" text-anchor="middle" fill="#8A93A0">v</text><text x="1045" y="114" font-size="19" text-anchor="middle" fill="#8A93A0">—</text>
-          <text x="895" y="170" font-size="19" text-anchor="middle" fill="#8A93A0">next</text><text x="1045" y="170" font-size="19" text-anchor="middle" fill="#8A93A0">—</text></g>
+          <text x="895" y="114" font-size="20" text-anchor="middle" fill="#8A93A0">v</text><text x="1045" y="114" font-size="20" text-anchor="middle" fill="#8A93A0">—</text>
+          <text x="895" y="170" font-size="20" text-anchor="middle" fill="#8A93A0">next</text><text x="1045" y="170" font-size="20" text-anchor="middle" fill="#8A93A0">—</text></g>
         </g>
-        <g class="appear" data-on="1+">
-          <text x="970" y="24" fill="#C55A11" font-size="15.5" font-style="italic" class="t-sans" text-anchor="middle">JITI — allocated on the fly · phantom · zero-init</text>
-          <g class="obj phantom"><rect class="hd" x="820" y="36" width="300" height="44" rx="8"/><rect class="bx" x="820" y="80" width="300" height="112"/>
-          <text x="970" y="65" fill="#fff" font-size="19" font-weight="bold" text-anchor="middle" class="t-sans">obj1 : node_t</text>
-          <line x1="970" y1="80" x2="970" y2="192"/><line x1="820" y1="136" x2="1120" y2="136"/>
-          <text x="895" y="114" font-size="19" text-anchor="middle">v</text><text x="1045" y="114" font-size="19" font-weight="bold" text-anchor="middle">0</text>
-          <text x="895" y="170" font-size="19" text-anchor="middle">next</text><text x="1045" y="170" font-size="19" font-weight="bold" text-anchor="middle">0</text></g>
-        </g>
-        <!-- step1: first dereference triggers JITI -->
-        <g class="appear" data-on="1+">
-          <path class="arrow" data-on="1+" d="M320 126 L424 126" pathLength="100" stroke="#2E6FB5" marker-end="url(#jb)"/>
-          <text x="372" y="112" font-size="14" fill="#2E6FB5" text-anchor="middle" class="t-sans">*head — first deref</text>
-        </g>
-        <!-- step2: check_ptr returns a real pointer -->
         <g class="appear" data-on="2+">
-          <path class="arrow" data-on="2+" d="M710 126 C 762 126, 772 164, 814 168" pathLength="100" stroke="#2E7D32" marker-end="url(#jg)"/>
-          <rect x="555" y="232" width="340" height="44" rx="8" fill="#DDEFDD" stroke="#2E7D32" stroke-width="2"/>
-          <text x="725" y="260" font-size="17" fill="#2E7D32" text-anchor="middle">p_next = &amp;obj1.list.next</text>
-          <text x="725" y="300" font-size="14.5" fill="#2E7D32" text-anchor="middle" class="t-sans" font-weight="bold">real pointer — used for one access, then discarded (the object may move or grow)</text>
+          <text x="970" y="14" fill="#C55A11" font-size="16.5" font-style="italic" font-weight="bold" class="t-sans" text-anchor="middle">Just-In-Time Initialization (JITI)</text>
+          <text x="970" y="32" fill="#C55A11" font-size="14.5" font-style="italic" class="t-sans" text-anchor="middle">allocated on the fly · phantom · zero-init</text>
+          <g class="obj phantom"><rect class="hd" x="820" y="36" width="300" height="44" rx="8"/><rect class="bx" x="820" y="80" width="300" height="112"/>
+          <text x="970" y="66" fill="#fff" font-size="20" font-weight="bold" text-anchor="middle" class="t-sans">obj1 : node_t</text>
+          <line x1="970" y1="80" x2="970" y2="192"/><line x1="820" y1="136" x2="1120" y2="136"/>
+          <text x="895" y="114" font-size="20" text-anchor="middle">v</text><text x="1045" y="114" font-size="20" font-weight="bold" text-anchor="middle">0</text>
+          <text x="895" y="170" font-size="20" text-anchor="middle">next</text><text x="1045" y="170" font-size="20" font-weight="bold" text-anchor="middle">0</text></g>
+        </g>
+        <!-- step1: container_of — pseudo-pointer arithmetic only, no translation -->
+        <g class="appear" data-on="1+">
+          <text x="170" y="240" font-size="15" font-weight="bold" fill="#C55A11" text-anchor="middle" class="t-sans">container_of: 0x1 − sizeof(int) = −3</text>
+          <text x="170" y="262" font-size="13.5" fill="#5A626E" text-anchor="middle" class="t-sans">pointer arithmetic stays pseudo — no translation;</text>
+          <text x="170" y="281" font-size="13.5" fill="#5A626E" text-anchor="middle" class="t-sans">the cast reveals the real type: node_t</text>
+        </g>
+        <!-- step2: first dereference (&curr->v = −3) triggers JITI; base := −3 ↦ obj1->v -->
+        <g class="appear" data-on="2+">
+          <path class="arrow" data-on="2+" d="M320 126 L424 126" pathLength="100" stroke="#2E6FB5" marker-end="url(#jb)"/>
+          <text x="375" y="110" font-size="15.5" font-weight="bold" fill="#142A4F" text-anchor="middle" class="t-sans"
+                stroke="#FFFFFF" stroke-width="5" style="paint-order:stroke">&amp;curr-&gt;v (−3) — first dereference</text>
+          <path class="arrow" data-on="2+" d="M710 118 C 760 112, 772 110, 812 110" pathLength="100" stroke="#2E6FB5" marker-end="url(#jb)"/>
+          <text x="970" y="216" font-size="15" font-weight="bold" fill="#C55A11" text-anchor="middle" class="t-sans">JITI: malloc obj1 (node_t) · base := −3</text>
+          <text x="970" y="238" font-size="14.5" font-weight="bold" fill="#2E6FB5" text-anchor="middle" class="t-sans">−3 ↦ obj1-&gt;v &nbsp;(segment offset 0)</text>
+        </g>
+        <!-- step3: later access head->next (0x1): rptr = object_base + (current − base) -->
+        <g class="appear" data-on="3+">
+          <path class="arrow" data-on="3+" d="M710 134 C 762 138, 772 164, 814 168" pathLength="100" stroke="#2E7D32" marker-end="url(#jg)"/>
+          <rect x="425" y="256" width="600" height="48" rx="8" fill="#DDEFDD" stroke="#2E7D32" stroke-width="2"/>
+          <text x="725" y="287" font-size="19" fill="#2E7D32" text-anchor="middle">p_next = &amp;obj1 + (0x1 − (−3)) = &amp;obj1-&gt;next</text>
+          <text x="725" y="330" font-size="16" fill="#2E7D32" text-anchor="middle" class="t-sans" font-weight="bold">real pointer = object_base + (current_offset − base_offset) — one access, then discarded</text>
         </g>
       </svg>
     </div>
     <div class="card orange" data-step="3" style="margin-top:.9rem">
-      <p style="font-size:.95rem"><b class="take">Watch for these in the next three runs:</b> every pointer the program touches is a <b>pseudo-pointer</b> · <span class="kbd">check_ptr</span> turns it into a <b>real pointer</b> just in time · <b>JITI</b> materializes memory the first time it's needed.</p>
+      <p style="font-size:1.04rem"><b class="take">Watch for these in the next three runs:</b> every pointer the program touches is a <b>pseudo-pointer</b> · <span class="kbd">check_ptr</span> turns it into a <b>real pointer</b> just in time · <b>JITI</b> materializes memory the first time it's needed.</p>
     </div>
   </div>
+  <div class="coderef">
+    <div class="tab">⌗ hover — peek at the instrumented code</div>
+    <div class="pop"><div class="code lit" id="codejp"></div></div>
+  </div>
   <footer class="foot"><span>UCSan · USENIX OSDI 2026</span><span>6</span></footer>
-  <aside class="notes">Before we run it, two pieces of vocabulary — thirty seconds. After the transformation, the pointer values the program manipulates, like head equals 0x1, are pseudo-pointers: logical addresses that don't address real memory. Only the shadow pointer knows the actual backing object — it works exactly like a segment register, and all aliased pointers share one. When the program is about to dereference a pseudo-pointer for the first time, UCSan performs Just-In-Time Initialization, JITI: it allocates the object on the fly as a phantom, zero-initialized. check_ptr then hands back a real pointer — an actual usable address inside that object. Real pointers are deliberately ephemeral: used for one access and thrown away, because the backing object may later be reallocated or resized. Keep these three in mind — you'll see all of them in action across the next three seeds.</aside>
+  <aside class="notes">Before we run it, two pieces of vocabulary — thirty seconds. After the transformation, the pointer values the program manipulates, like head equals 0x1, are pseudo-pointers: logical addresses that don't address real memory. Only the shadow pointer knows the actual backing object — it works exactly like a segment register, and all aliased pointers share one. Now watch the translation arithmetic, in execution order. First, container_of: that's pure pointer arithmetic, and arithmetic on pseudo-pointers needs no translation at all — curr simply becomes 0x1 minus the size of the int in front of the list field, minus 3. The cast also reveals the real underlying type, node_t, which tells UCSan the right allocation size. Second, the first actual dereference is ampersand-curr-arrow-v, whose pseudo value is minus 3. That triggers Just-In-Time Initialization: UCSan mallocs obj1 as a zero-filled phantom, and the shadow pointer records the pseudo value at that moment — minus 3 — as the segment's base offset. So minus 3 maps to obj1's v field, segment offset zero. From then on, every real pointer is computed as: object base plus, current offset minus base offset. For example head-arrow-next, pseudo value 0x1: obj1 plus 0x1 minus minus 3 equals obj1 plus 4 — exactly the next field. Real pointers are deliberately ephemeral: used for one access and thrown away, because the backing object may later be reallocated or resized — container_of can even grow it. Keep these in mind — you'll see all of them across the next three seeds.</aside>
 </section>
 
 <section class="slide" id="s6" data-steps="3">
@@ -621,8 +693,11 @@ aside.notes{display:none}
             <text x="760" y="69" fill="#fff" font-size="21" font-weight="bold" text-anchor="middle" class="t-sans">obj1 : node_t</text>
             <line x1="760" y1="84" x2="760" y2="196"/><line x1="610" y1="140" x2="910" y2="140"/>
             <text x="685" y="118" font-size="20" text-anchor="middle">v</text>
-            <g><text class="swap-a" data-on="3+" x="835" y="118" font-size="20" font-weight="bold" text-anchor="middle">0</text>
-               <text class="swap-b" data-on="3+" x="835" y="118" font-size="20" font-weight="bold" fill="#C55A11" text-anchor="middle">sym</text></g>
+            <text x="820" y="118" font-size="20" font-weight="bold" text-anchor="middle">0</text>
+            <g class="appear" data-on="3+">
+              <rect x="842" y="100" width="48" height="26" rx="13" fill="#FBEEE3" stroke="#C55A11" stroke-width="1.5"/>
+              <text x="866" y="118" font-size="13.5" fill="#C55A11" font-style="italic" font-weight="bold" text-anchor="middle" class="t-sans">sym</text>
+            </g>
             <text x="685" y="174" font-size="20" text-anchor="middle">next</text>
             <text x="835" y="174" font-size="20" font-weight="bold" fill="#B3342A" text-anchor="middle">0x0</text>
           </g>
@@ -713,22 +788,26 @@ aside.notes{display:none}
     <div class="pipe">
       <div class="flowdot" data-on="3"></div>
       <div style="flex:1.1;display:flex;flex-direction:column;gap:.6rem">
-        <div class="pnode in"><b>LLVM IR</b><span>any front end works — e.g. kernel LTO build</span></div>
-        <div class="pnode in"><b>YAML config</b><span>entry function · analysis scope · external-fn strategy</span></div>
+        <div class="pnode in"><b>LLVM IR</b><span>any front end — e.g. kernel LTO build</span>
+          <code class="ex"><span class="d">; cal.bc</span><span>define i32 @cal(ptr %head)</span></code></div>
+        <div class="pnode in"><b>YAML config</b><span>entry · scope · external fns</span>
+          <code class="ex"><span class="o">entry:</span><span>&nbsp; cal</span><span class="o">scope:</span><span>&nbsp; [foo, bar]</span><span><span class="o">kmalloc:</span> → malloc</span></code></div>
       </div>
       <div class="parrow" data-step="1">➜</div>
       <div class="pnode" data-step="1" style="flex:1.25">
         <b>UCSan pass</b>
-        <span>instrument every memory access (address translation)<br>
-        stub / wrap external calls · drop out-of-scope code</span>
+        <span>instrument memory accesses · handle external calls · drop out-of-scope code</span>
+        <code class="ex"><span>*p &nbsp;⇒ *check_ptr(p, p_s)</span><span>kmalloc() ⇒ malloc()</span><span class="r">✂ out-of-scope functions</span></code>
       </div>
       <div class="parrow" data-step="2">➜</div>
       <div class="pnode opt" data-step="2" style="flex:1">
-        <b>analysis pass (optional)</b><span>e.g. SymSan concolic tracing — pipelined on the same IR</span>
+        <b>analysis pass (optional)</b><span>pipelined on the same IR</span>
+        <code class="ex"><span>SymSan: sum&gt;100 ⇒ SMT</span><span class="d">or fuzzer · model checker</span></code>
       </div>
       <div class="parrow" data-step="3">➜</div>
       <div class="pnode out" data-step="3" style="flex:1">
-        <b>self-contained executable</b><span>links UCSan + PUT + analysis runtimes; runs as a normal user-space program</span>
+        <b>self-contained executable</b><span>UCSan + PUT + analysis runtimes; a normal user-space program</span>
+        <code class="ex"><span class="d">$ ./cal_uc seed2</span><span class="r">assert(false) hit!</span></code>
       </div>
     </div>
     <div class="cols" style="flex:0 0 auto;margin-top:.6rem">
@@ -737,7 +816,7 @@ aside.notes{display:none}
     </div>
   </div>
   <footer class="foot"><span>UCSan · USENIX OSDI 2026</span><span>11</span></footer>
-  <aside class="notes">Stepping back: everything in that walkthrough is produced by this fully automatic pipeline. Two inputs: the program as LLVM IR — any front end that emits IR works; for the kernel, enabling LTO gets you the IR — and a small YAML config naming the entry function, the analysis scope, and how to handle out-of-scope functions. The config can be written by hand, or generated by static analysis or an LLM. UCSan instruments every memory access for address translation, stubs or wraps external calls, and drops out-of-scope code. Any analysis pass slots into the pipeline the same way SymSan did — fuzzing or model checking work too. And the output links into a normal user-space executable: no VM, no disk image, no device. That generality is what we now evaluate.</aside>
+  <aside class="notes">Stepping back: everything in that walkthrough is produced by this fully automatic pipeline. Two inputs: the program as LLVM IR — any front end that emits IR works; for the kernel, enabling LTO gets you the IR — and a small YAML config naming the entry function, the analysis scope, and how to handle out-of-scope functions. The config can be written by hand, or generated by static analysis or an LLM. UCSan instruments every memory access for address translation, stubs or wraps external calls, and drops out-of-scope code. Any analysis pass slots into the pipeline the same way SymSan did — fuzzing or model checking work too. And the output links into a normal user-space executable: no VM, no disk image, no device. The snippets under each stage show our linked-list example flowing through: cal's IR plus a three-line config in, check_ptr instrumentation in the middle, and at the end a binary you just run with a seed — and it hits the assertion. That generality is what we now evaluate.</aside>
 </section>
 
 <section class="slide" id="s13" data-steps="2">
@@ -783,10 +862,12 @@ aside.notes{display:none}
       <div class="tile"><div class="lbl">v5.10 · 15k scopes</div><div class="big" data-count="96.2" data-suffix="%">96.2%</div><div class="sub">analysis scopes compiled</div></div>
       <div class="tile"><div class="lbl">v6.16 · 157k scopes</div><div class="big" data-count="88.9" data-suffix="%">88.9%</div><div class="sub">analysis scopes compiled</div></div>
     </div>
-    <div class="card" data-step="2"><p>Most failures: <b>unsupported inline assembly</b> — a limitation KLEE shares too.</p></div>
+    <div class="card green" data-step="2"><p>Most failures: <b>unhandled inline assembly</b> — but unlike KLEE, UCSan has a way out:
+      heuristics cover common asm patterns, and complex blocks can be modeled with a <b>custom wrapper function</b>
+      (LLMs can even generate these wrappers automatically).</p></div>
   </div>
   <footer class="foot"><span>UCSan · USENIX OSDI 2026</span><span>13</span></footer>
-  <aside class="notes">Compatibility: we compiled three kernel versions — 4.14, 5.10 (the Android long-term branch), and 6.16, latest stable at evaluation time. Scopes were generated automatically: function pointers from static initializers as entries plus a simple call-graph analysis. Overall, more than 80 percent of kernel modules compile; on 5.10 that's 96.2 percent of about fifteen thousand scopes; on 6.16, 88.9 percent of roughly 157 thousand. Almost all failures come from unhandled inline assembly — and KLEE suffers from the same limitation.</aside>
+  <aside class="notes">Compatibility: we compiled three kernel versions — 4.14, 5.10 (the Android long-term branch), and 6.16, latest stable at evaluation time. Scopes were generated automatically: function pointers from static initializers as entries plus a simple call-graph analysis. Overall, more than 80 percent of kernel modules compile; on 5.10 that's 96.2 percent of about fifteen thousand scopes; on 6.16, 88.9 percent of roughly 157 thousand. Almost all failures come from unhandled inline assembly. But unlike KLEE, which is stuck there, UCSan has a solution: our heuristics already handle common assembly patterns, and any complex assembly block can be modeled with a custom wrapper function — the same wrapper mechanism you saw for external functions. And we observed that LLMs can generate these wrappers automatically, which removes most of the manual effort.</aside>
 </section>
 
 <section class="slide" id="s15" data-steps="3">
@@ -862,6 +943,7 @@ aside.notes{display:none}
 </section>
 
 <section class="slide dark" id="s18">
+  <div class="ucr-title"></div>
   <div class="body" style="justify-content:center;align-items:center;text-align:center;gap:.9rem">
     <h1 style="font-size:4.8rem;letter-spacing:-.01em">Thank you!</h1>
     <p style="font-size:1.3rem;color:#CFDDEF">Questions? &nbsp;·&nbsp;
@@ -978,6 +1060,9 @@ renderCode("code10",{mode:"run",show:["sig","g1","g2"],
   hot:{cof:"1",cp1:"1",cp2:"2",ld:"2",sum:"3"}});
 renderCode("code11",{mode:"run",show:["sig","g1","g2"],
   hot:{cp1:"1",while:"2",cp2:"2",bug:"3"}});
+renderCode("codejp",{mode:"diff"});   // the peek panel on the JITI page
+document.querySelectorAll(".coderef .tab").forEach(t=>
+  t.addEventListener("click",()=>t.closest(".coderef").classList.toggle("open")));
 
 /* ================================================================ nbench chart
    Slowdown = native / engine iterations-per-sec (Table: eva4-nbench).  */
@@ -1036,12 +1121,15 @@ const slides=[...document.querySelectorAll("section.slide")];
 let cur=0, step=0;
 const maxStep=s=>+(s.dataset.steps||0);
 
+function applyState(s,st){
+  s.querySelectorAll("[data-step]").forEach(f=>f.classList.toggle("shown",+f.dataset.step<=st));
+  s.querySelectorAll("[data-on]").forEach(e=>e.classList.toggle("on",matches(e.dataset.on,st)));
+  s.querySelectorAll("[data-hot]").forEach(e=>e.classList.toggle("hot",matches(e.dataset.hot,st)));
+  s.querySelectorAll("[data-boost]").forEach(e=>e.classList.toggle("boost",matches(e.dataset.boost,st)));
+}
 function applyStep(){
   const s=slides[cur];
-  s.querySelectorAll("[data-step]").forEach(f=>f.classList.toggle("shown",+f.dataset.step<=step));
-  s.querySelectorAll("[data-on]").forEach(e=>e.classList.toggle("on",matches(e.dataset.on)));
-  s.querySelectorAll("[data-hot]").forEach(e=>e.classList.toggle("hot",matches(e.dataset.hot)));
-  s.querySelectorAll("[data-boost]").forEach(e=>e.classList.toggle("boost",matches(e.dataset.boost)));
+  applyState(s,step);
   // one-shot animations, fired when their fragment becomes visible
   const vis=el=>{const f=el.closest("[data-step]");return !f||f.classList.contains("shown")};
   s.querySelectorAll(".donut .val").forEach(c=>{
@@ -1058,11 +1146,12 @@ function applyStep(){
       if(p<1)requestAnimationFrame(tick)})(t0);
   });
 }
-function matches(spec){
+function matches(spec,st){
+  if(st===undefined) st=step;
   return spec.split(/\s+/).some(t=>{
-    if(t.endsWith("+")) return step>=+t.slice(0,-1);
-    if(t.includes("-")){const[a,b]=t.split("-");return step>=+a&&step<=+b}
-    return step===+t;
+    if(t.endsWith("+")) return st>=+t.slice(0,-1);
+    if(t.includes("-")){const[a,b]=t.split("-");return st>=+a&&st<=+b}
+    return st===+t;
   });
 }
 function show(i,st){
@@ -1109,7 +1198,7 @@ addEventListener("keydown",e=>{
 let md=null;
 addEventListener("mousedown",e=>{md={x:e.clientX,y:e.clientY,t:performance.now()}});
 addEventListener("click",e=>{
-  if(e.target.closest("a,button,#nav,#toc,#notes"))return;
+  if(e.target.closest("a,button,#nav,#toc,#notes,.coderef"))return;
   if(e.detail>1)return;                                              // double / triple click
   if(md&&(Math.hypot(e.clientX-md.x,e.clientY-md.y)>6
           ||performance.now()-md.t>400))return;                      // drag or long press
@@ -1151,9 +1240,31 @@ function fit(){stage.style.transform=
   `translate(-50%,-50%) scale(${Math.min(innerWidth/1280,innerHeight/720)})`}
 addEventListener("resize",fit); fit();
 
-/* boot from hash (#7 or #7.2) */
-const m=location.hash.match(/^#(\d+)(?:\.(\d+))?/);
-show(m?+m[1]-1:0, m&&m[2]?+m[2]:0);
+/* printing: snap every slide to its final step so the PDF shows complete content */
+addEventListener("beforeprint",()=>{
+  slides.forEach(s=>{
+    applyState(s,maxStep(s));
+    s.querySelectorAll(".donut .val").forEach(c=>
+      c.style.strokeDasharray=c.closest(".donut").dataset.pct+" 999");
+    s.querySelectorAll("[data-count]").forEach(el=>{
+      el.classList.add("counted");
+      const t=+el.dataset.count,pre=el.dataset.prefix||"",suf=el.dataset.suffix||"";
+      el.innerHTML=pre+(el.dataset.group?Math.round(t).toLocaleString("en-US"):el.dataset.count)+suf;
+    });
+  });
+});
+addEventListener("afterprint",()=>show(cur,step));
+
+/* boot from hash (#7 or #7.2), and follow manual URL edits live —
+   show() writes via history.replaceState, which doesn't fire hashchange,
+   so user-typed changes are the only trigger here (no feedback loop) */
+function gotoHash(){
+  const m=location.hash.match(/^#(\d+)(?:\.(\d+))?/);
+  const i=m?+m[1]-1:0, st=m&&m[2]?+m[2]:0;
+  if(i!==cur||st!==step||!slides[cur].classList.contains("current")) show(i,st);
+}
+addEventListener("hashchange",gotoHash);
+gotoHash();
 </script>
 </body>
 </html>
