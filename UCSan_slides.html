@@ -77,6 +77,7 @@ footer.foot{flex:none;display:flex;justify-content:space-between;
   [data-step]{opacity:1 !important;transform:none !important}
   .appear{opacity:1 !important}
   .arrow{stroke-dashoffset:0 !important;transition:none !important}
+  .donut .val{transition:none !important}
   .swap-a{opacity:0 !important}.swap-b{opacity:1 !important}
   .bar-fill{width:var(--w) !important;transition:none !important}
   .nbar{transform:none !important;transition:none !important}
@@ -362,8 +363,8 @@ header.band::after{content:"";position:absolute;top:50%;right:3.2rem;transform:t
           <path d="M266 71 L335 85 M266 111 L335 97" stroke="#2E6FB5" stroke-width="1.5" opacity=".5"/>
           <text x="300" y="64" font-size="13.5" fill="#2E6FB5" text-anchor="middle" class="t-sans">harness</text>
           <circle r="5" fill="#2E6FB5"><animateMotion dur="1.3s" repeatCount="indefinite" path="M266 91 L335 91"/></circle>
-          <text x="140" y="162" font-size="14.5" fill="#B3342A" class="t-sans" text-anchor="middle">needs harness + VM / disk / device →</text>
-          <text x="140" y="182" font-size="14.5" fill="#B3342A" class="t-sans" text-anchor="middle">most components unreachable 🔒</text>
+          <text x="150" y="162" font-size="13" fill="#B3342A" class="t-sans" text-anchor="middle">each needs a harness + VM / disk / device →</text>
+          <text x="150" y="182" font-size="13" fill="#B3342A" class="t-sans" text-anchor="middle">deep code &amp; drivers stay out of reach</text>
         </g>
         <!-- static analysis -->
         <g class="appear" data-on="2+">
@@ -381,7 +382,7 @@ header.band::after{content:"";position:absolute;top:50%;right:3.2rem;transform:t
     </div>
   </div>
   <footer class="foot"><span>UCSan · USENIX OSDI 2026</span><span>2</span></footer>
-  <aside class="notes">Software bugs remain the major threat to system correctness, especially in OS kernels — here's the kernel as a map of components. We have two ways to hunt bugs in it. First, dynamic testing — watch the fuzzer: it's precise, but everything it reaches must flow through a hand-written harness, plus a VM, a disk image, or real hardware. Only a handful of components light up; everything else is simply unreachable — locked. Second, static analysis: it sweeps the entire map, but look at what it leaves behind — UBITect emits 147,643 warnings on this kernel, and only 52 were ever confirmed or patched. Nobody can triage that. So neither approach scales precise analysis to the individual components of a large system.</aside>
+  <aside class="notes">Software bugs remain the major threat to system correctness, especially in OS kernels — here's the kernel as a map of components. We have two ways to hunt bugs in it. First, dynamic testing — watch the fuzzer: it's precise, but everything it reaches must flow through a hand-written harness, plus a VM, a disk image, or real hardware. Components like the network stack are harnessed today, but only after enormous manual effort — and driver-heavy or deep code still needs bespoke setup it doesn't have. Second, static analysis: it sweeps the entire map, but look at what it leaves behind — UBITect emits 147,643 warnings on this kernel, and only 52 were ever confirmed or patched. Nobody can triage that. So neither approach scales precise analysis to the individual components of a large system.</aside>
 </section>
 
 <section class="slide" id="s3" data-steps="2">
@@ -416,7 +417,7 @@ header.band::after{content:"";position:absolute;top:50%;right:3.2rem;transform:t
     <div class="left"><div class="code lit" id="code7"></div></div>
     <div class="right" style="gap:.8rem">
       <div class="scene" style="flex:0 0 auto">
-        <svg viewBox="0 0 660 248">
+        <svg viewBox="0 0 690 248">
           <defs><marker id="qb" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#2E6FB5"/></marker></defs>
           <!-- the function under test -->
           <rect x="30" y="98" width="240" height="66" rx="10" fill="#1B2433"/>
@@ -424,34 +425,34 @@ header.band::after{content:"";position:absolute;top:50%;right:3.2rem;transform:t
           <text x="150" y="149" font-size="13" fill="#7E8C9F" text-anchor="middle" class="t-sans">deep inside the kernel</text>
           <!-- step1: the goal -->
           <g class="appear" data-on="1+">
-            <rect x="412" y="182" width="232" height="44" rx="8" fill="#FBEEE3" stroke="#C55A11" stroke-width="2"/>
-            <text x="528" y="209" font-size="14" fill="#B3342A">if (sum>100) assert(false)</text>
-            <circle cx="412" cy="204" r="18" fill="none" stroke="#B3342A" stroke-width="2" class="pulse"/>
-            <circle cx="412" cy="204" r="7" fill="none" stroke="#B3342A" stroke-width="2"/>
-            <line x1="412" y1="180" x2="412" y2="228" stroke="#B3342A" stroke-width="1.6"/>
-            <line x1="388" y1="204" x2="436" y2="204" stroke="#B3342A" stroke-width="1.6"/>
-            <text x="528" y="172" font-size="13.5" fill="#C55A11" class="t-sans" text-anchor="middle">goal: reach this path</text>
+            <rect x="430" y="186" width="244" height="44" rx="8" fill="#FBEEE3" stroke="#C55A11" stroke-width="2"/>
+            <text x="558" y="213" font-size="13.5" fill="#B3342A" text-anchor="middle">if (sum>100) assert(false)</text>
+            <circle cx="430" cy="208" r="18" fill="none" stroke="#B3342A" stroke-width="2" class="pulse"/>
+            <circle cx="430" cy="208" r="7" fill="none" stroke="#B3342A" stroke-width="2"/>
+            <line x1="430" y1="184" x2="430" y2="232" stroke="#B3342A" stroke-width="1.6"/>
+            <line x1="406" y1="208" x2="454" y2="208" stroke="#B3342A" stroke-width="1.6"/>
+            <text x="558" y="176" font-size="13.5" fill="#C55A11" class="t-sans" text-anchor="middle">goal: reach this path</text>
           </g>
           <!-- step2: fuzzer input bounces off — no entry point -->
           <g class="appear" data-on="2+">
             <rect x="40" y="12" width="150" height="48" rx="9" fill="#fff" stroke="#2E6FB5" stroke-width="2"/>
             <text x="115" y="42" font-size="15" fill="#142A4F" text-anchor="middle" class="t-sans">fuzzer input</text>
             <line x1="305" y1="14" x2="305" y2="174" stroke="#B3342A" stroke-width="3" stroke-dasharray="8 6"/>
-            <text x="320" y="36" font-size="13.5" fill="#B3342A" class="t-sans">no main() — needs a harness</text>
+            <text x="312" y="30" font-size="13" fill="#B3342A" class="t-sans">no main() — needs a harness</text>
             <circle r="6" fill="#2E6FB5"><animateMotion dur="1.6s" repeatCount="indefinite" path="M190 36 L300 78 L214 128"/></circle>
             <circle r="6" fill="#2E6FB5" opacity=".7"><animateMotion dur="1.6s" begin="0.55s" repeatCount="indefinite" path="M190 48 L300 106 L222 156"/></circle>
             <circle r="6" fill="#2E6FB5" opacity=".45"><animateMotion dur="1.6s" begin="1.1s" repeatCount="indefinite" path="M190 26 L300 56 L206 92"/></circle>
           </g>
           <!-- step3: head dangles into the unknown -->
           <g class="appear" data-on="3+">
-            <path d="M270 124 C 332 120, 362 96, 406 84" fill="none" stroke="#2E6FB5" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#qb)"/>
-            <text x="338" y="142" font-size="13.5" fill="#2E6FB5">head = ???</text>
-            <ellipse cx="478" cy="72" rx="62" ry="40" fill="#EEF2F7" stroke="#5A626E" stroke-width="2" stroke-dasharray="8 6"/>
-            <text x="478" y="84" font-size="30" font-weight="bold" fill="#5A626E" text-anchor="middle">?</text>
+            <path d="M270 124 C 332 124, 360 108, 402 100" fill="none" stroke="#2E6FB5" stroke-width="3" stroke-dasharray="7 5" marker-end="url(#qb)"/>
+            <text x="332" y="146" font-size="13.5" fill="#2E6FB5">head = ???</text>
+            <ellipse cx="470" cy="92" rx="60" ry="38" fill="#EEF2F7" stroke="#5A626E" stroke-width="2" stroke-dasharray="8 6"/>
+            <text x="470" y="104" font-size="30" font-weight="bold" fill="#5A626E" text-anchor="middle">?</text>
           </g>
-          <text class="appear t-sans" data-on="3+" style="transition-delay:.15s" x="592" y="32" font-size="13.5" fill="#142A4F" text-anchor="middle">what object?</text>
-          <text class="appear t-sans" data-on="3+" style="transition-delay:.45s" x="604" y="72" font-size="13.5" fill="#142A4F" text-anchor="middle">how big?</text>
-          <text class="appear t-sans" data-on="3+" style="transition-delay:.75s" x="596" y="112" font-size="13.5" fill="#142A4F" text-anchor="middle">what values?</text>
+          <text class="appear t-sans" data-on="3+" style="transition-delay:.15s" x="600" y="70" font-size="13.5" fill="#142A4F" text-anchor="middle">what object?</text>
+          <text class="appear t-sans" data-on="3+" style="transition-delay:.45s" x="600" y="96" font-size="13.5" fill="#142A4F" text-anchor="middle">how big?</text>
+          <text class="appear t-sans" data-on="3+" style="transition-delay:.75s" x="600" y="122" font-size="13.5" fill="#142A4F" text-anchor="middle">what values?</text>
         </svg>
       </div>
       <div class="stepcards">
@@ -462,7 +463,7 @@ header.band::after{content:"";position:absolute;top:50%;right:3.2rem;transform:t
     </div>
   </div>
   <footer class="foot"><span>UCSan · USENIX OSDI 2026</span><span>4</span></footer>
-  <aside class="notes">Now the heart of the talk: a linked-list example, elevated from the UC-KLEE paper. cal() walks a linked list and sums node values — it takes the list head directly as an argument and uses container_of, just like real kernel code. Line 12 is our planted bug: if the sum exceeds 100, an assertion fires. Goal: cover every path including that assertion. A fuzzer or normal concolic engine can't start here — someone has to write a harness. We start mid-program, where head is completely uninitialized. UCSan must answer three questions on the fly: what does head point to, how big is that object, and what's inside?</aside>
+  <aside class="notes">Now the heart of the talk: a linked-list example, adapted from the UC-KLEE paper. cal() walks a linked list and sums node values — it takes the list head directly as an argument and uses container_of, just like real kernel code. Line 12 is our planted bug: if the sum exceeds 100, an assertion fires. Goal: cover every path including that assertion. A fuzzer or normal concolic engine can't start here — someone has to write a harness. We start mid-program, where head is completely uninitialized. UCSan must answer three questions on the fly: what does head point to, how big is that object, and what's inside?</aside>
 </section>
 
 <section class="slide" id="s8" data-steps="4">
@@ -862,12 +863,12 @@ header.band::after{content:"";position:absolute;top:50%;right:3.2rem;transform:t
       <div class="tile"><div class="lbl">v5.10 · 15k scopes</div><div class="big" data-count="96.2" data-suffix="%">96.2%</div><div class="sub">analysis scopes compiled</div></div>
       <div class="tile"><div class="lbl">v6.16 · 157k scopes</div><div class="big" data-count="88.9" data-suffix="%">88.9%</div><div class="sub">analysis scopes compiled</div></div>
     </div>
-    <div class="card green" data-step="2"><p>Most failures: <b>unhandled inline assembly</b> — but unlike KLEE, UCSan has a way out:
-      heuristics cover common asm patterns, and complex blocks can be modeled with a <b>custom wrapper function</b>
-      (LLMs can even generate these wrappers automatically).</p></div>
+    <div class="card green" data-step="2"><p>Remaining failures: <b>unhandled inline assembly</b> — the same limitation KLEE has.
+      Unlike KLEE, UCSan offers a path forward: complex blocks can be modeled with a <b>custom wrapper function</b>
+      (the same mechanism as external functions; LLMs can help generate them).</p></div>
   </div>
   <footer class="foot"><span>UCSan · USENIX OSDI 2026</span><span>13</span></footer>
-  <aside class="notes">Compatibility: we compiled three kernel versions — 4.14, 5.10 (the Android long-term branch), and 6.16, latest stable at evaluation time. Scopes were generated automatically: function pointers from static initializers as entries plus a simple call-graph analysis. Overall, more than 80 percent of kernel modules compile; on 5.10 that's 96.2 percent of about fifteen thousand scopes; on 6.16, 88.9 percent of roughly 157 thousand. Almost all failures come from unhandled inline assembly. But unlike KLEE, which is stuck there, UCSan has a solution: our heuristics already handle common assembly patterns, and any complex assembly block can be modeled with a custom wrapper function — the same wrapper mechanism you saw for external functions. And we observed that LLMs can generate these wrappers automatically, which removes most of the manual effort.</aside>
+  <aside class="notes">Compatibility: we compiled three kernel versions — 4.14, 5.10 (the Android long-term branch), and 6.16, latest stable at evaluation time. Scopes were generated automatically: function pointers from static initializers as entries plus a simple call-graph analysis. Overall, more than 80 percent of kernel modules compile; on 5.10 that's 96.2 percent of about fifteen thousand scopes; on 6.16, 88.9 percent of roughly 157 thousand. Almost all the remaining failures come from unhandled inline assembly — the same limitation KLEE has. But unlike KLEE, which is stuck there, UCSan offers a path forward: any complex assembly block can be modeled with a custom wrapper function — the same wrapper mechanism you saw for external functions — and we observed that LLMs can help generate these wrappers, removing most of the manual effort.</aside>
 </section>
 
 <section class="slide" id="s15" data-steps="3">
@@ -876,7 +877,7 @@ header.band::after{content:"";position:absolute;top:50%;right:3.2rem;transform:t
     <div class="col">
       <div class="card"><h3>Task</h3><p>Confirm/refute UBITect's use-before-init warnings — 2-minute, 2 GB budget per warning. UCSan<sup>†</sup> vs the KLEE-based engine built for this exact task (IncreLux).</p></div>
       <div class="card" data-step="1">
-        <h3>Warnings finished within budget</h3>
+        <h3>Warnings finished within the 2-min budget</h3>
         <div class="bar-row"><span class="who">UCSan<sup>†</sup></span><div class="bar-track"><div class="bar-fill" style="--w:95.46%;background:var(--green)">95.46% (63,957)</div></div></div>
         <div class="bar-row"><span class="who">KLEE</span><div class="bar-track"><div class="bar-fill" style="--w:41.29%;background:var(--red)">41.29%</div></div></div>
       </div>
@@ -922,10 +923,10 @@ header.band::after{content:"";position:absolute;top:50%;right:3.2rem;transform:t
         <div class="big">26 / 38</div><div class="sub">no fuzzer · no syscall specs</div>
       </div>
     </div>
-    <div class="card green" data-step="2"><p>All <b>without hand-crafted test harnesses</b>; misses are mostly path explosion or incomplete scope — not fundamental limits.</p></div>
+    <div class="card green" data-step="2"><p>All <b>without hand-crafted test harnesses</b>; most misses are path explosion or incomplete scope, with a few from unsupported features (e.g. concurrency).</p></div>
   </div>
   <footer class="foot"><span>UCSan · USENIX OSDI 2026</span><span>15</span></footer>
-  <aside class="notes">Second case study: reproducing known vulnerabilities with no hand-written harness — just a scope and an entry function, with most configurations generated automatically, including by a coding agent. Across three datasets: all 30 NVD CVEs we sampled were reproduced; 69 of 94 CVEs in the AFGen dataset re-discovered; and 26 of the 38 kernel bugs from the SyzSpec paper — without a fuzzer and without syscall descriptions. The misses are mostly path explosion inside large scopes or scopes that didn't include the buggy code — not fundamental limitations.</aside>
+  <aside class="notes">Second case study: reproducing known vulnerabilities with no hand-written harness — just a scope and an entry function, with most configurations generated automatically, including by a coding agent. Across three datasets: all 30 NVD CVEs we sampled were reproduced; 69 of 94 CVEs in the AFGen dataset re-discovered; and 26 of the 38 kernel bugs from the SyzSpec paper — without a fuzzer and without syscall descriptions. The misses are mostly path explosion inside large scopes or scopes that didn't include the buggy code, with a few from features we don't yet support, like concurrency.</aside>
 </section>
 
 <section class="slide dark" id="s17" data-steps="4">
@@ -933,13 +934,13 @@ header.band::after{content:"";position:absolute;top:50%;right:3.2rem;transform:t
     <h2 style="font-size:2.6rem;border-bottom:.25rem solid var(--orange);padding-bottom:.8rem;margin-bottom:1rem">Conclusion</h2>
     <p data-step="1" style="font-size:1.18rem;line-height:1.5">▸ <b>UCSan</b>: the first compilation-based under-constrained execution engine — native speed, general, decoupled from the analysis.</p>
     <p data-step="2" style="font-size:1.18rem;line-height:1.5">▸ Enables under-constrained concolic execution <b>at scale</b> — finishing far more analysis tasks and finding real bugs without harnesses.</p>
-    <p data-step="3" style="font-size:1.18rem;line-height:1.5">▸ Validated on the <b>Linux kernel</b> and <b>150+ real CVEs</b> across three datasets.</p>
+    <p data-step="3" style="font-size:1.18rem;line-height:1.5">▸ Validated on the <b>Linux kernel</b> and <b>150+ real CVEs &amp; kernel bugs</b> across three datasets.</p>
     <div data-step="4" style="margin-top:1.4rem">
       <a href="https://github.com/R-Fuzz/UCSan" style="display:block;background:var(--orange);color:#fff;text-decoration:none;font-weight:700;font-size:1.25rem;border-radius:.5rem;padding:1rem 1.4rem">Open source (Apache 2.0): &nbsp;github.com/R-Fuzz/UCSan</a>
     </div>
   </div>
   <footer class="foot"><span>UCSan · USENIX OSDI 2026</span><span>16</span></footer>
-  <aside class="notes">To conclude: UCSan is the first compilation-based under-constrained execution engine — native speed, general-purpose, decoupled from the analysis on top. That decoupling let us build UCSan-dagger, which scales under-constrained concolic execution to the Linux kernel and finds real, patched bugs without any test harnesses. Validated on three kernel versions and over 150 real CVEs. Everything is open source under Apache 2.0. Thank you — happy to take questions.</aside>
+  <aside class="notes">To conclude: UCSan is the first compilation-based under-constrained execution engine — native speed, general-purpose, decoupled from the analysis on top. That decoupling let us build UCSan-dagger, which scales under-constrained concolic execution to the Linux kernel and finds real, patched bugs without any test harnesses. Validated on three kernel versions and over 150 real CVEs and kernel bugs. Everything is open source under Apache 2.0. Thank you — happy to take questions.</aside>
 </section>
 
 <section class="slide dark" id="s18">
@@ -1101,17 +1102,18 @@ const NB=[ // [test, ucsan, ucsan-dagger, klee]  (null = crash)
 (function(){
   const g=document.getElementById("ktiles"); if(!g)return;
   const names=["ext4","tcp/ip","mm","sched","kvm","binder","gpu drv","nvme","netfilter","usb","bpf","v4l2","ipc","crypto","sound","wifi drv","ftrace","rdma"];
-  const reach=new Set(["tcp/ip","mm","sched","ipc"]);          // harness-reachable
+  // green: a harness already exists (syscall-reachable, e.g. via syzkaller);
+  // grey: needs a bespoke harness + special environment (disk image, device/emulator, real hw)
+  const reach=new Set(["tcp/ip","mm","sched","ipc","netfilter","bpf","usb","kvm","binder"]);
   let s="";
   names.forEach((nm,i)=>{
     const c=i%6,r=(i/6)|0,x=352+c*132,y=58+r*108,R=reach.has(nm);
     s+=`<g class="ktile ${R?"reach":"unreach"}" data-on="1+">
         <rect x="${x}" y="${y}" width="122" height="94" rx="8"/>
         <text x="${x+61}" y="${y+42}" font-size="14.5" text-anchor="middle" class="t-sans">${nm}</text>
-        <text class="appear t-sans" data-on="1+" x="${x+61}" y="${y+70}" font-size="13" text-anchor="middle" fill="${R?"#2E7D32":"#9AA4B2"}">${R?"✓ fuzzed":"🔒 no harness"}</text></g>`;
+        <text class="appear t-sans" data-on="1+" x="${x+61}" y="${y+70}" font-size="12.5" text-anchor="middle" fill="${R?"#2E7D32":"#9AA4B2"}">${R?"✓ harnessed":"🔒 needs env"}</text></g>`;
     s+=`<g class="wdot" data-on="2+" style="transition-delay:${i*70}ms">
-        <text x="${x+104}" y="${y+22}" font-size="15" fill="#B3342A" font-weight="bold">✗</text>
-        <text x="${x+14}" y="${y+88}" font-size="12" fill="#B3342A" font-weight="bold">✗</text></g>`;
+        <text x="${x+104}" y="${y+22}" font-size="15" fill="#B3342A" font-weight="bold">✗</text></g>`;
   });
   g.innerHTML=s;
 })();
