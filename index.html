@@ -1,218 +1,374 @@
-<!DOCTYPE html>
-<html>
-
+<!doctype html>
+<html lang="en">
 <head>
-  <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" >
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
-  <title>mingjun97的blog</title>
-  <meta name="description" content="日常填坑的各种记录" />
-  <meta name="HandheldFriendly" content="True" />
-  <meta name="MobileOptimized" content="320" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Data Burner</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --panel: #131a26;
+    --panel-2: #1a2333;
+    --line: #263349;
+    --text: #e7edf5;
+    --muted: #8b9bb4;
+    --accent: #ff6b35;
+    --accent-2: #ffa552;
+    --green: #35d07f;
+    --red: #ff5d6c;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    background: radial-gradient(1200px 800px at 50% -10%, #17203100, #0b0f17), var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 24px);
+    display: flex;
+    justify-content: center;
+  }
+  .wrap { width: 100%; max-width: 520px; }
+  header { text-align: center; padding: 28px 0 18px; }
+  .logo {
+    font-size: 30px; font-weight: 800; letter-spacing: -0.5px;
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .flame { filter: drop-shadow(0 0 12px #ff6b3566); }
+  .sub { color: var(--muted); font-size: 14px; margin-top: 6px; }
 
-  <link rel="stylesheet" type="text/css" href="/css/screen.css" />
-  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Noto+Serif:400,700,400italic|Open+Sans:700,400" />
+  .card {
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 14px;
+  }
 
-  <meta name="generator" content="mingjun97的blog">
+  /* Progress ring / big number */
+  .hero { text-align: center; padding: 26px 18px 22px; }
+  .big { font-size: 46px; font-weight: 800; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+  .big small { font-size: 20px; color: var(--muted); font-weight: 700; margin-left: 4px; }
+  .of { color: var(--muted); font-size: 14px; margin-top: 4px; }
 
-  
-  
-  
+  .bar {
+    height: 12px; border-radius: 99px; background: #0d1420;
+    overflow: hidden; margin: 18px 0 4px; border: 1px solid var(--line);
+  }
+  .bar > i {
+    display: block; height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width .25s ease;
+    box-shadow: 0 0 16px #ff6b3577;
+  }
+  .pct { color: var(--muted); font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
 
-  
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat { background: #0e1622; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .stat .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  .stat .v { font-size: 20px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+  label { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+  .row { display: flex; gap: 10px; }
+  .row > .field { flex: 1; }
+  input, select {
+    width: 100%; background: #0e1622; color: var(--text);
+    border: 1px solid var(--line); border-radius: 12px;
+    padding: 13px 14px; font-size: 16px; outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 8px; line-height: 1.5; }
+
+  .btns { display: flex; gap: 12px; margin-top: 4px; }
+  button {
+    flex: 1; border: none; border-radius: 14px; padding: 16px;
+    font-size: 16px; font-weight: 700; cursor: pointer; color: #fff;
+    transition: transform .06s ease, opacity .2s ease;
+  }
+  button:active { transform: scale(.98); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .primary { background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  .ghost { background: #23120c; color: var(--accent-2); border: 1px solid #4a2a1a; }
+  .stop { background: linear-gradient(90deg, #ff4d5e, #ff7a4d); }
+
+  .status { text-align: center; font-size: 13px; color: var(--muted); margin-top: 12px; min-height: 18px; }
+  .status.run { color: var(--green); }
+  .status.done { color: var(--accent-2); }
+  .status.err { color: var(--red); }
+
+  .foot { text-align: center; color: #5f6f88; font-size: 11px; margin-top: 6px; line-height: 1.6; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:99px; background: var(--muted); margin-right:6px; vertical-align: middle;}
+  .dot.live { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+</style>
 </head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><span class="flame">🔥</span> Data Burner</div>
+    <div class="sub">Consume mobile data on purpose — powered by Cloudflare's CDN</div>
+  </header>
 
-
-<body class="home-template">
-
-  <header class="site-head"  style="background-image: url(//blog.ghost.org/content/images/2013/Nov/cover.png)" >
-    <div class="vertical">
-        <div class="site-head-content inner">
-             <a class="blog-logo" href="/"><img src="//lyric.today/img/logo.png" alt="Blog Logo"/></a> 
-            <h1 class="blog-title">mingjun97的blog</h1>
-            <h2 class="blog-description">日常填坑的各种记录</h2>
-        </div>
-    </div>
-</header>
-  
-<main class="content" role="main">
-  
-  <article class="post">
-    <header class="post-header">
-      <span class="post-meta">
-      <time datetime="2018-11-13T07:56:34.000Z" itemprop="datePublished">
-          2018-11-12
-      </time>
-    
-</span>
-      <h2 class="post-title"><a href="/2018/11/12/灯塔党建题库爬取代码/">灯塔党建题库爬取代码</a></h2>
-    </header>
-    <section class="post-excerpt">
-      <p>
-      
-        import urllib2import jsonurl = "http://xxjs.dtdjzx.gov.cn/quiz-api/subject_info/randomList"url_l = 'http://xxjs.dtdjzx.gov.
-      
-      </p>
-      
-      <p>
-          <a href="/2018/11/12/灯塔党建题库爬取代码/" class="excerpt-link">Read More...</a>
-      </p>
-      
-    </section>
-  </article>
-  
-  <article class="post">
-    <header class="post-header">
-      <span class="post-meta">
-      <time datetime="2018-09-11T22:39:05.000Z" itemprop="datePublished">
-          2018-09-11
-      </time>
-    
-</span>
-      <h2 class="post-title"><a href="/2018/09/11/Net-Filter程序编写/">Net Filter程序编写</a></h2>
-    </header>
-    <section class="post-excerpt">
-      <p>
-      
-        前言今年的网络安全课程设计要求设计一个通过Net Filter API接口执行防火墙功能的程序，并且支持动态的规则调整、日志记录、静态NAT等功能。
-环境使用ubuntu系统，在mac下使用Fusion虚拟机程序进行模拟。安装openssh-server
-
-      
-      </p>
-      
-      <p>
-          <a href="/2018/09/11/Net-Filter程序编写/" class="excerpt-link">Read More...</a>
-      </p>
-      
-    </section>
-  </article>
-  
-  <article class="post">
-    <header class="post-header">
-      <span class="post-meta">
-      <time datetime="2018-09-06T21:35:16.000Z" itemprop="datePublished">
-          2018-09-06
-      </time>
-    
-    
-    | 
-    <a href='/tags/python/'>python</a>
-    
-    
-</span>
-      <h2 class="post-title"><a href="/2018/09/06/高并发API测试脚本/">高并发API测试脚本</a></h2>
-    </header>
-    <section class="post-excerpt">
-      <p>
-      
-        通过一定的手段拿到了某同学的身份证号前6位和生日，利用普通话考试系统查询成绩不需要验证码的业务逻辑漏洞，确认该同学参加过普通话考试，遂编写python脚本如下对该同学的身份证号后四位进行爆破。1234567891011121314# -*- coding: utf-8 -*- import osfrom multiprocessing import Processdef inquiry(id):    r = os.popen(r"cu
-      
-      </p>
-      
-      <p>
-          <a href="/2018/09/06/高并发API测试脚本/" class="excerpt-link">Read More...</a>
-      </p>
-      
-    </section>
-  </article>
-  
-  <article class="post">
-    <header class="post-header">
-      <span class="post-meta">
-      <time datetime="2018-05-03T04:34:09.000Z" itemprop="datePublished">
-          2018-05-02
-      </time>
-    
-</span>
-      <h2 class="post-title"><a href="/2018/05/02/React踩坑记录2-this-setState-频繁刷新导致性能下降/">React踩坑记录2 - this.setState()频繁刷新导致性能下降</a></h2>
-    </header>
-    <section class="post-excerpt">
-      <p>
-      
-        前言这两天在做软件安全实验，实验要求写一个嗅探器+arp欺骗的工具。老师要求是用winpcap来实现。偷懒的我决定用python3的scapy模块来实现相关的功能。介于老师有要求写出漂亮的界面，所以最后决定使用flask+semantic-ui+socketio+react来实现套件功能。
-踩坑实况背景描述由于后台使用了scapy进行抓包，使用prn参数的回调功能结合socketio来实现包的广播（这里有另外一个坑），但是如果短时间内抓
-      
-      </p>
-      
-      <p>
-          <a href="/2018/05/02/React踩坑记录2-this-setState-频繁刷新导致性能下降/" class="excerpt-link">Read More...</a>
-      </p>
-      
-    </section>
-  </article>
-  
-  <article class="post">
-    <header class="post-header">
-      <span class="post-meta">
-      <time datetime="2017-11-09T00:39:09.000Z" itemprop="datePublished">
-          2017-11-08
-      </time>
-    
-    
-    | 
-    <a href='/tags/React/'>React</a>,
-    
-    <a href='/tags/JSX/'>JSX</a>,
-    
-    <a href='/tags/Admin-On-Rest/'>Admin-On-Rest</a>
-    
-    
-</span>
-      <h2 class="post-title"><a href="/2017/11/08/React踩坑记录1-将Const类型的组件改写为Class类型的组件/">React踩坑记录1 - 将Const类型的组件改写为Class类型的组件</a></h2>
-    </header>
-    <section class="post-excerpt">
-      <p>
-      
-        背景博主没系统学过JavaScript，但是由于项目需要所以利用Admin-On-Rest框架进行编写程序，该框架基于React，利用JSX进行编写，在编写的时候由于不懂JS所以回踩到很多很多的坑。排坑过程记录一下，方便有其他像我这样强行开车的同学跳坑而出。
-修改过程直接利用Admin-On-Rest-demo魔改的，在一个List中需要添加几个按钮，demo中将该按钮写成了const类型的IconButton，我需要自己添加一些点击后
-      
-      </p>
-      
-      <p>
-          <a href="/2017/11/08/React踩坑记录1-将Const类型的组件改写为Class类型的组件/" class="excerpt-link">Read More...</a>
-      </p>
-      
-    </section>
-  </article>
-  
-  <nav class="pagination" role="pagination">
-    
-    <span class="page-number">Page 1 of 1</span>
-    
-  </nav>
-</main>
-
-
-  
-<footer class="site-footer">
-  
-  <div class="inner">
-     <section class="copyright">All content copyright <a href="/">mingjun97的blog</a> &copy; 2014 &bull; All rights reserved.</section>
-     <section class="poweredby">Proudly published with <a class="icon-ghost" href="http://zespia.tw/hexo/">Hexo</a></section>
+  <!-- Live dashboard -->
+  <div class="card hero">
+    <div class="big"><span id="usedNum">0.00</span><small id="usedUnit">MB</small></div>
+    <div class="of">of <span id="targetLabel">1.00 GB</span> target</div>
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="pct"><span id="pctNum">0.0</span>% complete</div>
   </div>
-</footer>
 
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+  <div class="card">
+    <div class="grid">
+      <div class="stat"><div class="k">Speed</div><div class="v"><span id="speed">0.0</span> <span style="font-size:13px;color:var(--muted)">Mbps</span></div></div>
+      <div class="stat"><div class="k">Elapsed</div><div class="v" id="elapsed">0:00</div></div>
+      <div class="stat"><div class="k">ETA</div><div class="v" id="eta">—</div></div>
+      <div class="stat"><div class="k">Connections</div><div class="v" id="activeConns">0</div></div>
+    </div>
+  </div>
 
-<script type="text/javascript" src="/js/jquery.fitvids.js"></script>
-<script type="text/javascript" src="/js/index.js"></script>
+  <!-- Settings -->
+  <div class="card" id="settings">
+    <div class="row">
+      <div class="field">
+        <label for="amount">Data to burn</label>
+        <input id="amount" type="number" inputmode="decimal" min="0.01" step="0.1" value="1">
+      </div>
+      <div class="field" style="max-width:120px">
+        <label for="unit">Unit</label>
+        <select id="unit">
+          <option value="1048576">MB</option>
+          <option value="1073741824" selected>GB</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <div class="field">
+        <label for="conns">Parallel connections</label>
+        <select id="conns">
+          <option>1</option><option>2</option><option>4</option>
+          <option selected>6</option><option>8</option><option>12</option><option>16</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="chunk">Chunk size</label>
+        <select id="chunk">
+          <option value="10485760">10 MB</option>
+          <option value="26214400">25 MB</option>
+          <option value="52428800" selected>50 MB</option>
+          <option value="104857600">100 MB</option>
+        </select>
+      </div>
+    </div>
+    <div class="hint">More connections & bigger chunks = faster burn. On a phone, 6–8 connections usually saturates the link. Data is downloaded and discarded — nothing is stored.</div>
+  </div>
 
+  <div class="btns">
+    <button class="primary" id="startBtn">Start burning</button>
+    <button class="stop" id="stopBtn" disabled>Stop</button>
+  </div>
 
+  <div class="status" id="status"><span class="dot" id="dot"></span>Idle — set a target and press start</div>
 
-<script type="text/javascript">
-    var disqus_shortname = 'lyric-today';
+  <div class="foot">
+    Downloads from <b>speed.cloudflare.com</b> (CORS-enabled speed-test endpoint).<br>
+    This uses real network data. Watch your bill if you're not on an unlimited plan.
+  </div>
+</div>
 
-    (function(){
-        var dsq = document.createElement('script');
-        dsq.type = 'text/javascript';
-        dsq.async = true;
-        dsq.src = '//' + disqus_shortname + '.disqus.com/count.js';
-        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    }());
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const DOWN_URL = 'https://speed.cloudflare.com/__down?bytes=';
+
+  // ---- state ----
+  let running = false;
+  let targetBytes = 0;
+  let downloadedBytes = 0;    // committed (fully-read chunks)
+  let liveBytes = 0;          // includes partial in-flight chunk bytes
+  let startTime = 0;
+  let activeConns = 0;
+  let controllers = new Set();
+  let uiTimer = null;
+  // rolling speed window: samples of [timestamp, liveBytes]
+  let samples = [];
+
+  const fmtBytes = b => {
+    if (b >= 1073741824) return (b/1073741824).toFixed(2) + ' GB';
+    if (b >= 1048576)    return (b/1048576).toFixed(2) + ' MB';
+    if (b >= 1024)       return (b/1024).toFixed(1) + ' KB';
+    return b + ' B';
+  };
+  const splitBytes = b => {
+    if (b >= 1073741824) return [(b/1073741824).toFixed(2), 'GB'];
+    if (b >= 1048576)    return [(b/1048576).toFixed(2), 'MB'];
+    if (b >= 1024)       return [(b/1024).toFixed(1), 'KB'];
+    return [String(b), 'B'];
+  };
+  const fmtTime = s => {
+    s = Math.max(0, Math.floor(s));
+    const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+    if (h) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    return `${m}:${String(sec).padStart(2,'0')}`;
+  };
+
+  function setStatus(msg, cls='') {
+    $('status').className = 'status ' + cls;
+    $('status').innerHTML = `<span class="dot ${running?'live':''}" id="dot"></span>` + msg;
+  }
+
+  function updateUI() {
+    const [num, unit] = splitBytes(liveBytes);
+    $('usedNum').textContent = num;
+    $('usedUnit').textContent = unit;
+    const pct = targetBytes ? Math.min(100, liveBytes / targetBytes * 100) : 0;
+    $('barFill').style.width = pct + '%';
+    $('pctNum').textContent = pct.toFixed(1);
+    $('activeConns').textContent = activeConns;
+
+    const elapsed = running ? (performance.now() - startTime) / 1000 : lastElapsed;
+    $('elapsed').textContent = fmtTime(elapsed);
+
+    // rolling speed over ~3s window
+    const now = performance.now();
+    samples.push([now, liveBytes]);
+    while (samples.length > 2 && now - samples[0][0] > 3000) samples.shift();
+    let mbps = 0;
+    if (samples.length >= 2) {
+      const [t0, b0] = samples[0];
+      const dt = (now - t0) / 1000;
+      if (dt > 0) mbps = ((liveBytes - b0) * 8) / dt / 1e6;
+    }
+    $('speed').textContent = mbps.toFixed(1);
+
+    if (running && mbps > 0.01) {
+      const remainBytes = Math.max(0, targetBytes - liveBytes);
+      const etaSec = remainBytes * 8 / (mbps * 1e6);
+      $('eta').textContent = fmtTime(etaSec);
+    } else if (!running) {
+      $('eta').textContent = '—';
+    }
+  }
+
+  let lastElapsed = 0;
+
+  async function worker() {
+    while (running && downloadedBytes < targetBytes) {
+      // how many bytes to ask for this chunk (don't overshoot the target much)
+      const chunkSize = parseInt($('chunk').value, 10);
+      const remaining = targetBytes - downloadedBytes;
+      const reqBytes = Math.max(1, Math.min(chunkSize, remaining));
+      const url = DOWN_URL + reqBytes + '&cacheBust=' + Math.floor(performance.now()) + '_' + Math.random().toString(36).slice(2);
+
+      const ctrl = new AbortController();
+      controllers.add(ctrl);
+      activeConns++;
+      let committedThisChunk = 0;
+      try {
+        const res = await fetch(url, { signal: ctrl.signal, cache: 'no-store', mode: 'cors' });
+        if (!res.ok || !res.body) throw new Error('HTTP ' + res.status);
+        const reader = res.body.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (!running) { try { await reader.cancel(); } catch(e){} break; }
+          liveBytes += value.length;
+          committedThisChunk += value.length;
+          if (liveBytes >= targetBytes) { try { await reader.cancel(); } catch(e){} break; }
+        }
+      } catch (err) {
+        if (running) {
+          // brief backoff on transient network error, then retry loop
+          await new Promise(r => setTimeout(r, 400));
+        }
+      } finally {
+        controllers.delete(ctrl);
+        activeConns--;
+        downloadedBytes += committedThisChunk;
+        // keep committed & live consistent (live may have counted a bit more)
+        if (downloadedBytes < liveBytes) downloadedBytes = liveBytes;
+      }
+
+      if (liveBytes >= targetBytes) break;
+    }
+  }
+
+  async function start() {
+    const amount = parseFloat($('amount').value);
+    const unitBytes = parseInt($('unit').value, 10);
+    if (!(amount > 0)) { setStatus('Enter a valid amount', 'err'); return; }
+
+    targetBytes = Math.round(amount * unitBytes);
+    downloadedBytes = 0;
+    liveBytes = 0;
+    samples = [];
+    startTime = performance.now();
+    running = true;
+
+    $('targetLabel').textContent = fmtBytes(targetBytes);
+    $('startBtn').disabled = true;
+    $('stopBtn').disabled = false;
+    $('settings').style.opacity = .5;
+    $('settings').querySelectorAll('input,select').forEach(e => e.disabled = true);
+    setStatus('Burning data…', 'run');
+
+    uiTimer = setInterval(updateUI, 250);
+
+    const n = parseInt($('conns').value, 10);
+    const jobs = [];
+    for (let i = 0; i < n; i++) jobs.push(worker());
+    await Promise.all(jobs);
+
+    // finished (either target reached or stopped)
+    finish();
+  }
+
+  function finish() {
+    const wasRunning = running;
+    running = false;
+    lastElapsed = (performance.now() - startTime) / 1000;
+    clearInterval(uiTimer);
+    for (const c of controllers) { try { c.abort(); } catch(e){} }
+    controllers.clear();
+    activeConns = 0;
+    updateUI();
+
+    $('startBtn').disabled = false;
+    $('stopBtn').disabled = true;
+    $('settings').style.opacity = 1;
+    $('settings').querySelectorAll('input,select').forEach(e => e.disabled = false);
+
+    if (liveBytes >= targetBytes) {
+      setStatus(`Done — burned ${fmtBytes(liveBytes)} in ${fmtTime(lastElapsed)}`, 'done');
+    } else {
+      setStatus(`Stopped at ${fmtBytes(liveBytes)} (${(liveBytes/targetBytes*100).toFixed(1)}%)`, '');
+    }
+  }
+
+  function stop() {
+    if (!running) return;
+    running = false;
+    for (const c of controllers) { try { c.abort(); } catch(e){} }
+    setStatus('Stopping…', '');
+  }
+
+  $('startBtn').addEventListener('click', start);
+  $('stopBtn').addEventListener('click', stop);
+
+  // live target label preview
+  const previewTarget = () => {
+    const a = parseFloat($('amount').value), u = parseInt($('unit').value, 10);
+    if (a > 0) $('targetLabel').textContent = fmtBytes(Math.round(a * u));
+  };
+  $('amount').addEventListener('input', previewTarget);
+  $('unit').addEventListener('change', previewTarget);
+  previewTarget();
+
+  // warn before leaving mid-burn
+  window.addEventListener('beforeunload', e => {
+    if (running) { e.preventDefault(); e.returnValue = ''; }
+  });
+})();
 </script>
-
-
-
-
 </body>
 </html>
