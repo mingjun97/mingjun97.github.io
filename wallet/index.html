@@ -48,6 +48,7 @@
 
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
+  html{overflow-anchor:none} /* anchoring fights the shrinking calendar and causes scroll jitter */
   body{
     background:var(--bg); color:var(--ink);
     font:16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -1178,7 +1179,7 @@ function renderHome(){
   }else{
     const hasTodayGroup = ordered.some(g=>g.days===0);
     const todayMarker = `<div class="day now" id="day-now">
-        <div class="coin now"><span class="dow">${DOW[t.getDay()]}</span><span class="num">${t.getDate()}</span></div>
+        <div class="coin now"><span class="dow">${MON[t.getMonth()]}</span><span class="num">${t.getDate()}</span></div>
         <p class="now-label">Today · ${MON[t.getMonth()]} ${t.getDate()}</p>
       </div>`;
     let markerPlaced = hasTodayGroup; /* an exact-today group already stands in for the line */
@@ -1190,7 +1191,7 @@ function renderHome(){
       let prefix = "";
       if(!markerPlaced && g.days > 0){ prefix = todayMarker; markerPlaced = true; }
       return prefix + `<div class="day ${cls}" id="day-${g.key}">
-        <div class="coin"><span class="dow">${g.hasOverdueBill?"!":DOW[d.getDay()]}</span><span class="num">${d.getDate()}</span></div>
+        <div class="coin"><span class="dow">${g.hasOverdueBill?"!":MON[d.getMonth()]}</span><span class="num">${d.getDate()}</span></div>
         <p class="when ${g.hasOverdueBill?'urgent':''}">${label}</p>
         ${g.items.map(it => it.kind==="bill" ? billCardHTML(it.x) : it.kind==="sched" ? schedCardHTML(it.x) : depCardHTML(it.x)).join("")}
       </div>`;
@@ -1507,12 +1508,20 @@ function calendarHTML(){
     </div>`;
 }
 
-/* Compact the floating calendar while the list is scrolled or focused. */
-let railFocused = false;
+/* Compact the floating calendar while the list is scrolled or focused.
+   Hysteresis: compacting removes ~190px of page height, so a single
+   threshold would flip-flop at mid-scroll. Compact past 110px, and only
+   expand again near the very top; the state lives in a variable so
+   re-renders can't reset it mid-scroll. */
+let railFocused = false, calCompact = false;
 function updateCalCompact(){
   const el = document.getElementById("calSticky");
   if(!el) return;
-  el.classList.toggle("compact", window.scrollY > 30 || railFocused);
+  const y = Math.max(0, window.scrollY);
+  if(railFocused) calCompact = true;
+  else if(calCompact){ if(y <= 8) calCompact = false; }
+  else if(y > 110) calCompact = true;
+  el.classList.toggle("compact", calCompact);
 }
 window.addEventListener("scroll", updateCalCompact, {passive:true});
 
