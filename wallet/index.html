@@ -1,1 +1,2520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cashline — bill &amp; cash flow tracker</title>
+<style>
+  :root{
+    --bg:#F2F5F5; --surface:#FFFFFF; --surface-2:#EAEFEF;
+    --ink:#16232A; --muted:#5D6E75; --faint:#8AA0A7; --line:#DFE7E8;
+    --accent:#1E6E62; --accent-ink:#FFFFFF; --accent-tint:#E3F0ED;
+    --good:#1E6E62; --good-tint:#E3F0ED;
+    --warn:#A05E00; --warn-tint:#F4E7CE;
+    --danger:#B0392E; --danger-tint:#F5E0DD;
+    --shadow:0 1px 2px rgba(22,35,42,.06), 0 4px 14px rgba(22,35,42,.05);
+    --radius:14px;
+    --mono:ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0E1518; --surface:#162227; --surface-2:#1C2B31;
+      --ink:#E6EEF0; --muted:#92A5AC; --faint:#5F757D; --line:#26343B;
+      --accent:#53C6B1; --accent-ink:#0E1518; --accent-tint:#1B3A35;
+      --good:#53C6B1; --good-tint:#1B3A35;
+      --warn:#E5A83F; --warn-tint:#3A2E14;
+      --danger:#E2685B; --danger-tint:#3E211E;
+      --shadow:0 1px 2px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#F2F5F5; --surface:#FFFFFF; --surface-2:#EAEFEF;
+    --ink:#16232A; --muted:#5D6E75; --faint:#8AA0A7; --line:#DFE7E8;
+    --accent:#1E6E62; --accent-ink:#FFFFFF; --accent-tint:#E3F0ED;
+    --good:#1E6E62; --good-tint:#E3F0ED;
+    --warn:#A05E00; --warn-tint:#F4E7CE;
+    --danger:#B0392E; --danger-tint:#F5E0DD;
+    --shadow:0 1px 2px rgba(22,35,42,.06), 0 4px 14px rgba(22,35,42,.05);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0E1518; --surface:#162227; --surface-2:#1C2B31;
+    --ink:#E6EEF0; --muted:#92A5AC; --faint:#5F757D; --line:#26343B;
+    --accent:#53C6B1; --accent-ink:#0E1518; --accent-tint:#1B3A35;
+    --good:#53C6B1; --good-tint:#1B3A35;
+    --warn:#E5A83F; --warn-tint:#3A2E14;
+    --danger:#E2685B; --danger-tint:#3E211E;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.25);
+  }
 
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font:inherit; color:inherit; background:none; border:none; padding:0; cursor:pointer}
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible{
+    outline:2px solid var(--accent); outline-offset:2px; border-radius:6px;
+  }
+  input, select, textarea{font:inherit; color:var(--ink)}
+
+  .wrap{max-width:640px; margin:0 auto; padding:0 16px calc(84px + env(safe-area-inset-bottom))}
+
+  /* ---------- header ---------- */
+  .app-head{display:flex; align-items:baseline; justify-content:space-between; padding:20px 2px 6px}
+  .app-head h1{font-size:22px; font-weight:800; letter-spacing:-.02em; margin:0}
+  .app-head .today{font-size:13px; color:var(--muted)}
+  .view-title{font-size:22px; font-weight:800; letter-spacing:-.02em; margin:20px 2px 4px}
+  .view-sub{font-size:14px; color:var(--muted); margin:0 2px 16px}
+
+  /* ---------- summary tiles ---------- */
+  .tiles{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0 18px}
+  .tile{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+        padding:14px 14px 12px; box-shadow:var(--shadow); min-width:0}
+  .tile .label{font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+  .tile .value{font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:24px; font-weight:600; margin-top:4px}
+  .tile .hint{font-size:12px; color:var(--muted); margin-top:2px}
+  .tile.warn .value{color:var(--warn)}
+  .tile.danger .value{color:var(--danger)}
+
+  /* ---------- alerts ---------- */
+  .alerts{display:flex; flex-direction:column; gap:8px; margin-bottom:18px}
+  .alert{display:flex; gap:10px; align-items:flex-start; padding:11px 13px; border-radius:12px; font-size:14px; line-height:1.4}
+  .alert .dot{flex:none; width:8px; height:8px; border-radius:50%; margin-top:6px}
+  .alert.warn{background:var(--warn-tint); color:var(--ink)}
+  .alert.warn .dot{background:var(--warn)}
+  .alert.danger{background:var(--danger-tint); color:var(--ink)}
+  .alert.danger .dot{background:var(--danger)}
+  .alert b{font-weight:650}
+  .alert .amt{font-family:var(--mono); font-variant-numeric:tabular-nums}
+
+  /* ---------- due rail (signature) ---------- */
+  .rail-head{display:flex; justify-content:space-between; align-items:baseline; margin:4px 2px 10px}
+  .rail-head h2{font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:0}
+  .rail{position:relative; padding-left:56px}
+  .rail::before{content:""; position:absolute; left:21px; top:8px; bottom:8px; width:2px;
+                background:var(--line); border-radius:1px}
+  .day{position:relative; margin-bottom:14px}
+  .day .coin{
+    position:absolute; left:-56px; top:2px; width:44px; text-align:center;
+    background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:4px 0 5px;
+    box-shadow:var(--shadow);
+  }
+  .day .coin .dow{display:block; font-size:10px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+  .day .coin .num{display:block; font-size:17px; font-weight:750; letter-spacing:-.01em; line-height:1.1}
+  .day.today .coin{border-color:var(--accent); background:var(--accent); }
+  .day.today .coin .dow, .day.today .coin .num{color:var(--accent-ink)}
+  .day.overdue .coin{border-color:var(--danger)}
+  .day.overdue .coin .num{color:var(--danger)}
+  .day .when{font-size:12px; color:var(--muted); margin:0 0 6px 2px}
+  .day .when.urgent{color:var(--danger); font-weight:600}
+  /* "Today" marker line on the timeline */
+  .day.now{min-height:40px; margin-bottom:16px}
+  .day.now .coin.now{border-color:var(--accent); background:var(--accent)}
+  .day.now .coin.now .dow, .day.now .coin.now .num{color:var(--accent-ink)}
+  .day.now .now-label{display:flex; align-items:center; gap:8px; font-size:11px; font-weight:700;
+    letter-spacing:.09em; text-transform:uppercase; color:var(--accent); margin:6px 0 0}
+  .day.now .now-label::after{content:""; flex:1; height:2px; border-radius:1px;
+    background:linear-gradient(90deg, var(--accent), transparent)}
+
+  .bill-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:12px 14px; margin-bottom:8px; box-shadow:var(--shadow);
+  }
+  .bill-top{display:flex; align-items:center; gap:8px}
+  .bill-ico, .ico-tile{flex:none; display:flex; align-items:center; justify-content:center;
+    background:var(--surface-2); box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+  .bill-ico{width:32px; height:32px; border-radius:9px}
+  .ico-tile{width:30px; height:30px; border-radius:8px}
+  .bill-ico svg{width:26px; height:26px}
+  .ico-tile svg{width:24px; height:24px}
+  .bill-ico svg.stroke, .ico-tile svg.stroke{stroke:#fff; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
+  .ico-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:8px}
+  .ico-opt{height:44px; border-radius:10px; background:var(--bg); border:1px solid var(--line);
+           display:flex; align-items:center; justify-content:center}
+  .ico-opt.on{border-color:var(--accent); box-shadow:0 0 0 1.5px var(--accent)}
+  .bill-name{font-weight:650; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .bill-amt{font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600; font-size:17px}
+  .proj-line{font-size:12px; color:var(--muted); margin-top:3px; text-align:right}
+  .proj-line .amt{font-size:12px; font-weight:600}
+  .bill-meta{display:flex; align-items:center; gap:6px; margin-top:7px; flex-wrap:wrap}
+  .chip{font-size:11.5px; font-weight:600; padding:3px 9px; border-radius:999px; white-space:nowrap}
+  .chip.autopay{background:var(--accent-tint); color:var(--accent)}
+  .chip.manual{border:1.5px solid var(--warn); color:var(--warn); padding:1.5px 8px}
+  .chip.acct{background:var(--surface-2); color:var(--muted)}
+  .chip.paid{background:var(--good-tint); color:var(--good)}
+  .chip.overdue{background:var(--danger); color:#fff}
+  .chip.payroll{background:var(--good-tint); color:var(--good)}
+  .chip.onetime{border:1.5px solid var(--good); color:var(--good); padding:1.5px 8px}
+  .chip.awaiting{border:1.5px solid var(--warn); color:var(--warn); padding:1.5px 8px}
+  .chip.scheduled{background:var(--accent-tint); color:var(--accent)}
+  .chip.pending{border:1.5px dashed var(--faint); color:var(--muted); padding:1.5px 8px}
+  .bill-card.dep{border-left:3px solid var(--good)}
+  .bill-card.sched{border-left:3px dashed var(--accent)}
+  .bill-amt.in, .tile .value.in{color:var(--good)}
+  .tile.wide{grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; padding:12px 14px}
+  .tile.wide .value{font-size:20px; margin-top:0}
+  /* bills filter bar */
+  .bills-filter{margin:0 0 14px}
+  .search-wrap{position:relative; margin-bottom:10px}
+  .search-wrap > svg{position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px;
+    stroke:var(--faint); fill:none; stroke-width:2; stroke-linecap:round}
+  .search-wrap input{width:100%; padding:11px 38px; border:1px solid var(--line); border-radius:12px;
+    background:var(--surface); font-size:16px; -webkit-appearance:none; appearance:none}
+  .search-wrap input::-webkit-search-cancel-button{display:none}
+  .search-wrap .clear-btn{position:absolute; right:8px; top:50%; transform:translateY(-50%); width:24px; height:24px;
+    border-radius:50%; background:var(--surface-2); color:var(--muted); font-size:12px;
+    display:flex; align-items:center; justify-content:center}
+  .ico-filter{display:flex; gap:8px; overflow-x:auto; padding:2px; scrollbar-width:none}
+  .ico-filter::-webkit-scrollbar{display:none}
+  .fchip{flex:none; padding:4px; border-radius:10px; border:1px solid var(--line); background:var(--surface);
+    display:flex; align-items:center; justify-content:center}
+  .fchip.all{padding:4px 14px; font-size:13px; font-weight:650; color:var(--muted)}
+  .fchip.on{border-color:var(--accent); box-shadow:0 0 0 1.5px var(--accent)}
+  .fchip.all.on{color:var(--accent)}
+  .fchip .ico-tile{width:26px; height:26px; border-radius:7px}
+  .fchip .ico-tile svg{width:20px; height:20px}
+  .section-head{display:flex; align-items:baseline; justify-content:space-between; margin:18px 2px 8px}
+  .section-head .section-label{margin:0}
+  .mini-btn{font-size:13px; font-weight:650; color:var(--accent)}
+  .bill-actions{margin-top:10px; display:flex; gap:8px; align-items:center}
+  .bill-actions .push{margin-left:auto}
+  .btn{
+    font-size:14px; font-weight:650; padding:8px 14px; border-radius:10px;
+    background:var(--accent); color:var(--accent-ink);
+  }
+  .btn.ghost{background:var(--surface-2); color:var(--ink)}
+  .btn.subtle{background:none; color:var(--muted); padding:8px 6px}
+  .btn.danger{background:var(--danger-tint); color:var(--danger)}
+  .btn:active{transform:translateY(1px)}
+
+  /* ---------- generic list cards ---------- */
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+        padding:14px; margin-bottom:10px; box-shadow:var(--shadow)}
+  .row{display:flex; align-items:center; gap:10px}
+  .row .grow{flex:1; min-width:0}
+  .title-sm{font-weight:650}
+  .sub-sm{font-size:13px; color:var(--muted); margin-top:1px}
+  .amt{font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600}
+  .amt.big{font-size:20px}
+  .neg{color:var(--danger)}
+
+  .drag-handle{flex:none; align-self:center; padding:8px 2px 8px 10px; color:var(--faint);
+               cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none}
+  .drag-handle:active{cursor:grabbing}
+  .drag-handle svg{width:18px; height:18px; display:block}
+  .card.drag-src{border-color:var(--accent)}
+  .card.drop-target{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent)}
+  .drag-arrow{position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:60}
+  .drag-arrow path{stroke:var(--accent); stroke-width:2.5; stroke-linecap:round; fill:none; opacity:.9}
+  .drag-arrow polygon{fill:var(--accent); opacity:.9}
+  .xfer-box{width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:10px;
+            background:var(--surface-2); font-size:15px; display:flex; justify-content:space-between; gap:10px}
+
+  .meter{height:6px; border-radius:3px; background:var(--surface-2); margin-top:10px; overflow:hidden}
+  .meter > i{display:block; height:100%; border-radius:3px; background:var(--accent)}
+  .meter.short > i{background:var(--danger)}
+  .meter-caption{display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-top:5px}
+  .meter-caption .amt{font-weight:600; font-size:12px}
+
+  .section-label{font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:18px 2px 8px}
+
+  .empty{
+    text-align:center; padding:40px 24px; color:var(--muted); font-size:15px;
+    background:var(--surface); border:1px dashed var(--line); border-radius:var(--radius); margin-top:14px;
+  }
+  .empty .btn{margin-top:14px}
+  .empty p{margin:0 0 4px}
+
+  .add-fab{
+    position:fixed; right:18px; bottom:calc(76px + env(safe-area-inset-bottom)); z-index:30;
+    width:52px; height:52px; border-radius:50%; background:var(--accent); color:var(--accent-ink);
+    font-size:28px; font-weight:400; line-height:1; box-shadow:0 4px 16px rgba(0,0,0,.22);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .add-fab[hidden]{display:none}
+
+  /* ---------- calendar ---------- */
+  .cal-head{display:flex; align-items:center; gap:8px; margin:4px 2px 10px}
+  .cal-title{font-size:17px; font-weight:750; letter-spacing:-.01em; flex:1}
+  .cal-nav{width:36px; height:36px; border-radius:10px; background:var(--surface-2); flex:none;
+           display:flex; align-items:center; justify-content:center}
+  .cal-nav svg{width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+  .cal-today-btn{font-size:13px; font-weight:650; color:var(--accent); padding:6px 10px; border-radius:10px; background:var(--accent-tint); flex:none}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px}
+  .cal-dow{text-align:center; font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding:2px 0 4px}
+  .cal-cell{min-height:44px; border-radius:10px; padding:4px 0 4px; display:flex; flex-direction:column;
+            align-items:center; gap:3px; border:1px solid transparent}
+  .cal-cell.evented{background:var(--surface); border-color:var(--line); box-shadow:var(--shadow); cursor:pointer}
+  .cal-cell.selected{border-color:var(--accent); box-shadow:0 0 0 1.5px var(--accent)}
+  .cal-cell .n{font-size:13.5px; font-weight:600; line-height:1.35; min-width:24px; text-align:center; border-radius:8px}
+  .cal-cell.today .n{background:var(--accent); color:var(--accent-ink); font-weight:750}
+  .cal-dots{display:flex; gap:3px; height:5px}
+  .cal-dots i{width:5px; height:5px; border-radius:50%; display:block}
+  .cal-legend{display:flex; gap:12px; flex-wrap:wrap; margin:10px 2px 0; font-size:11.5px; color:var(--muted)}
+  .cal-legend i{width:6px; height:6px; border-radius:50%; display:inline-block; margin-right:5px}
+  .cal-dots i.late, .cal-legend i.late{background:var(--danger)}
+  .cal-dots i.due, .cal-legend i.due{background:var(--warn)}
+  .cal-dots i.auto, .cal-legend i.auto{background:var(--faint)}
+  .cal-dots i.dep, .cal-legend i.dep{background:var(--good)}
+  .cal-dots i.sched, .cal-legend i.sched{background:var(--accent); box-shadow:0 0 0 1.5px var(--accent-tint)}
+
+  /* Floating calendar: sticks to the top of Home; compacts on scroll/focus
+     so the transaction list gets the room. */
+  .cal-sticky{
+    position:sticky; top:0; z-index:15;
+    background:var(--bg);
+    margin:0 -16px; padding:6px 16px 8px;
+    border-bottom:1px solid transparent;
+  }
+  .cal-sticky.compact{border-bottom-color:var(--line); box-shadow:0 6px 14px rgba(10,18,22,.10)}
+  .cal-cell{transition:min-height .2s ease, padding .2s ease, gap .2s ease}
+  .cal-cell .n{transition:font-size .2s ease}
+  .cal-sticky.compact .cal-head{margin:0 2px 6px}
+  .cal-sticky.compact .cal-title{font-size:14px}
+  .cal-sticky.compact .cal-nav{width:28px; height:28px; border-radius:8px}
+  .cal-sticky.compact .cal-nav svg{width:15px; height:15px}
+  .cal-sticky.compact .cal-today-btn{padding:3px 8px; font-size:12px}
+  .cal-sticky.compact .cal-grid{gap:3px}
+  .cal-sticky.compact .cal-dow{display:none}
+  .cal-sticky.compact .cal-cell{min-height:24px; padding:1px 0 2px; gap:1px; border-radius:7px}
+  .cal-sticky.compact .cal-cell .n{font-size:11.5px; min-width:20px; border-radius:6px}
+  .cal-sticky.compact .cal-dots{height:4px}
+  .cal-sticky.compact .cal-dots i{width:4px; height:4px}
+  .cal-sticky.compact .cal-legend{display:none}
+  .cal-sticky.measuring, .cal-sticky.measuring *{transition:none !important}
+
+  /* ---------- tab bar ---------- */
+  nav.tabs{
+    position:fixed; left:0; right:0; bottom:0; z-index:20;
+    background:var(--surface); border-top:1px solid var(--line);
+    padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+    display:flex; justify-content:space-around;
+  }
+  nav.tabs button{
+    flex:1; max-width:120px; display:flex; flex-direction:column; align-items:center; gap:2px;
+    font-size:11px; font-weight:600; color:var(--faint); padding:5px 0 3px; border-radius:10px;
+  }
+  nav.tabs button svg{width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
+  nav.tabs button.active{color:var(--accent)}
+  nav.tabs button .badge{
+    position:absolute; transform:translate(12px,-2px);
+    min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--danger); color:#fff;
+    font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center;
+  }
+  nav.tabs button{position:relative}
+  nav.tabs button .badge[hidden]{display:none}
+
+  /* ---------- dialogs / sheets ---------- */
+  dialog{
+    border:none; padding:0; background:transparent; max-width:none; width:100%;
+    margin:auto auto 0; max-height:92dvh;
+  }
+  dialog::backdrop{background:rgba(10,18,22,.45); backdrop-filter:blur(2px)}
+  .sheet{
+    background:var(--surface); border-radius:18px 18px 0 0; padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+    max-width:640px; margin:0 auto; box-shadow:0 -8px 30px rgba(0,0,0,.2);
+    max-height:92dvh; overflow-y:auto;
+  }
+  @media (min-width:640px){
+    dialog{margin:auto}
+    .sheet{border-radius:18px; padding-bottom:18px}
+  }
+  .sheet h2{font-size:18px; font-weight:750; letter-spacing:-.01em; margin:0 0 14px}
+  .field{margin-bottom:13px}
+  .field label{display:block; font-size:12px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); margin-bottom:5px}
+  .field input[type=text], .field input[type=number], .field input[type=date], .field select{
+    width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); font-size:16px;
+  }
+  .field .help{font-size:12px; color:var(--faint); margin-top:4px}
+  .field-row{display:flex; gap:10px}
+  .field-row .field{flex:1}
+  .seg{display:flex; background:var(--surface-2); border-radius:10px; padding:3px}
+  .seg button{flex:1; padding:8px 0; border-radius:8px; font-size:14px; font-weight:600; color:var(--muted)}
+  .seg button.on{background:var(--surface); color:var(--ink); box-shadow:var(--shadow)}
+  .switch-row{display:flex; align-items:center; justify-content:space-between; padding:4px 0}
+  .switch-row .lab{font-size:15px; font-weight:600}
+  .switch-row .desc{font-size:12.5px; color:var(--muted); margin-top:1px; max-width:38ch}
+  .toggle{width:50px; height:30px; border-radius:15px; background:var(--surface-2); position:relative; flex:none; transition:background .15s}
+  .toggle::after{content:""; position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%;
+                 background:var(--surface); box-shadow:0 1px 3px rgba(0,0,0,.25); transition:left .15s}
+  .toggle.on{background:var(--accent)}
+  .toggle.on::after{left:23px}
+  /* mini calendar inside the payment sheet */
+  .pay-quick{display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap}
+  .chipbtn{font-size:13px; font-weight:650; padding:7px 12px; border-radius:999px; background:var(--surface-2); color:var(--ink)}
+  .chipbtn.on{background:var(--accent); color:var(--accent-ink)}
+  .mini-cal{background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:10px}
+  .mc-head{display:flex; align-items:center; gap:6px; margin-bottom:6px}
+  .mc-title{flex:1; font-size:13.5px; font-weight:700}
+  .mc-nav{width:28px; height:28px; border-radius:8px; background:var(--surface-2); display:flex; align-items:center; justify-content:center}
+  .mc-nav svg{width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+  .mc-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:3px}
+  .mc-dow{text-align:center; font-size:9.5px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); padding-bottom:3px}
+  .mc-cell{height:34px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+           font-size:13px; font-weight:600; color:var(--ink); gap:1px}
+  .mc-cell.past{color:var(--faint)}
+  .mc-cell.range{background:var(--accent-tint)}
+  .mc-cell.due{box-shadow:inset 0 0 0 1.7px var(--warn)}
+  .mc-cell.due.late{box-shadow:inset 0 0 0 1.7px var(--danger)}
+  .mc-cell.today-c::after{content:""; width:4px; height:4px; border-radius:50%; background:var(--accent)}
+  .mc-cell.sel{background:var(--accent); color:var(--accent-ink)}
+  .mc-cell.sel::after{background:var(--accent-ink)}
+  .mc-legend{display:flex; gap:14px; margin-top:8px; font-size:11px; color:var(--muted); flex-wrap:wrap}
+  .mc-legend .k{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px}
+  .sheet-actions{display:flex; gap:10px; margin-top:18px}
+  .sheet-actions .btn{flex:1; padding:12px; text-align:center; font-size:15px}
+  .sheet-actions .btn.danger{flex:0 0 auto}
+
+  /* ---------- settings ---------- */
+  .settings-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:12px}
+  .settings-card .switch-row, .settings-card .set-row{padding:13px 14px; border-bottom:1px solid var(--line)}
+  .settings-card > :last-child{border-bottom:none}
+  .set-row{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .set-row input[type=number]{width:72px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--bg); text-align:center; font-size:16px}
+  .set-row .btn{padding:8px 14px}
+
+  /* ---------- toast ---------- */
+  #toast{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:calc(86px + env(safe-area-inset-bottom));
+    z-index:50; background:var(--ink); color:var(--bg); font-size:14px; font-weight:600;
+    padding:11px 16px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,.3);
+    display:none; align-items:center; gap:14px; max-width:min(92vw, 480px);
+  }
+  #toast.show{display:flex}
+  #toast button{color:var(--accent); font-weight:700; flex:none}
+  @media (prefers-color-scheme: dark){ #toast{background:var(--surface-2); color:var(--ink); border:1px solid var(--line)} }
+  :root[data-theme="dark"] #toast{background:var(--surface-2); color:var(--ink); border:1px solid var(--line)}
+  :root[data-theme="light"] #toast{background:var(--ink); color:var(--bg); border:none}
+
+  /* ---------- motion ---------- */
+  @keyframes rise{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+  @keyframes sheet-up{from{opacity:.4; transform:translateY(26px)} to{opacity:1; transform:none}}
+  @keyframes fade-in{from{opacity:0} to{opacity:1}}
+  @keyframes toast-in{from{opacity:0; transform:translate(-50%,10px)} to{opacity:1; transform:translate(-50%,0)}}
+  #view.enter .tile, #view.enter .alert{animation:rise .22s ease both}
+  #view.enter .bill-card, #view.enter .card, #view.enter .settings-card,
+  #view.enter .cal-grid, #view.enter .empty{animation:rise .3s ease both}
+  #view.enter .day .coin{animation:fade-in .35s ease both}
+  dialog[open] .sheet{animation:sheet-up .26s cubic-bezier(.2,.8,.25,1)}
+  dialog[open]::backdrop{animation:fade-in .2s ease}
+  #toast.show{animation:toast-in .22s ease}
+  .removing{
+    transition:opacity .2s ease, transform .2s ease,
+               max-height .24s ease .06s, margin .24s ease .06s, padding .24s ease .06s;
+    overflow:hidden; opacity:0 !important; transform:translateX(26px);
+    max-height:0 !important; margin-top:0 !important; margin-bottom:0 !important;
+    padding-top:0 !important; padding-bottom:0 !important; border-width:0;
+  }
+  .day{scroll-margin-top:10px}
+  .day.flash .bill-card{border-color:var(--accent)}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important; animation:none !important}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <main id="view"></main>
+</div>
+
+<button class="add-fab" id="fab" aria-label="Add" hidden>+</button>
+
+<nav class="tabs" aria-label="Main">
+  <button data-tab="home" class="active">
+    <svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/></svg>
+    Home<span class="badge" id="homeBadge" hidden></span>
+  </button>
+  <button data-tab="bills">
+    <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2Z"/><path d="M9 8h6M9 12h6"/></svg>
+    Bills
+  </button>
+  <button data-tab="accounts">
+    <svg viewBox="0 0 24 24"><path d="M3 8h18v11H3Z"/><path d="M3 8l2-4h14l2 4"/><path d="M15 13h3"/></svg>
+    Accounts
+  </button>
+  <button data-tab="settings">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7"/></svg>
+    Settings
+  </button>
+</nav>
+
+<div id="toast" role="status"></div>
+
+<dialog id="xferDialog"><div class="sheet">
+  <h2>Transfer between accounts</h2>
+  <form id="xferForm">
+    <div class="field">
+      <label>From</label>
+      <div class="xfer-box" id="xFromLabel"></div>
+    </div>
+    <div class="field">
+      <label for="xTo">To</label>
+      <select id="xTo" required></select>
+    </div>
+    <div class="field">
+      <label for="xAmount">Amount ($)</label>
+      <input type="number" id="xAmount" min="0.01" step="0.01" inputmode="decimal" placeholder="0.00" required>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn ghost" data-close>Cancel</button>
+      <button type="submit" class="btn">Transfer</button>
+    </div>
+  </form>
+</div></dialog>
+
+<dialog id="balDialog"><div class="sheet">
+  <h2 id="balDlgTitle">Balance</h2>
+  <form id="balForm">
+    <p class="sub-sm" id="balInfo" style="font-size:14px; margin:0 0 14px"></p>
+    <div class="field">
+      <label>Operation</label>
+      <div class="seg" id="balMode">
+        <button type="button" data-v="set" class="on">Set amount due</button>
+        <button type="button" data-v="post">Post to next stmt</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="balAmt" id="balAmtLabel">Amount due ($)</label>
+      <input type="number" id="balAmt" step="0.01" inputmode="decimal" required>
+      <div class="help" id="balHelp"></div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn ghost" data-close>Cancel</button>
+      <button type="submit" class="btn" id="balSave">Save amount</button>
+    </div>
+  </form>
+</div></dialog>
+
+<dialog id="payDialog"><div class="sheet">
+  <h2>Record payment</h2>
+  <form id="payForm">
+    <p class="sub-sm" id="payBillInfo" style="font-size:14px; margin:0 0 14px"></p>
+    <div class="field-row">
+      <div class="field">
+        <label for="pAmount">Amount paid ($)</label>
+        <input type="number" id="pAmount" min="0" step="0.01" inputmode="decimal" required>
+      </div>
+      <div class="field">
+        <label for="pAccount">Paid from</label>
+        <select id="pAccount"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Payment date</label>
+      <div class="pay-quick" id="payQuick"></div>
+      <div class="mini-cal" id="payCal"></div>
+      <div class="help" id="payDateLabel"></div>
+    </div>
+    <p class="sub-sm" id="payHint" hidden>Automatic balance updates are off in Settings — recording this payment won't change the account balance.</p>
+    <p class="sub-sm" id="payFutureHint" hidden style="color:var(--accent)">Held until this date — the balance won't change and the bill stays open until then.</p>
+    <div class="sheet-actions">
+      <button type="button" class="btn ghost" data-close>Cancel</button>
+      <button type="submit" class="btn" id="paySubmit">Record payment</button>
+    </div>
+  </form>
+</div></dialog>
+
+<dialog id="confirmDialog"><div class="sheet">
+  <h2 id="confirmTitle">Are you sure?</h2>
+  <p class="sub-sm" id="confirmMsg" style="font-size:14px; margin:0 0 6px"></p>
+  <div class="sheet-actions">
+    <button type="button" class="btn ghost" id="confirmNo">Cancel</button>
+    <button type="button" class="btn" id="confirmYes">Confirm</button>
+  </div>
+</div></dialog>
+
+<dialog id="depDialog"><div class="sheet">
+  <h2 id="depDlgTitle">Add an expected deposit</h2>
+  <form id="depForm">
+    <div class="field">
+      <label for="dName">Name</label>
+      <input type="text" id="dName" placeholder="e.g. Payroll — Acme, eBay payout" required maxlength="40">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="dAmount">Amount ($)</label>
+        <input type="number" id="dAmount" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required>
+      </div>
+      <div class="field">
+        <label for="dAccount">Deposits into</label>
+        <select id="dAccount" required></select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Type</label>
+      <div class="seg" id="dType">
+        <button type="button" data-v="oneoff" class="on">One-time</button>
+        <button type="button" data-v="payroll">Payroll / recurring</button>
+      </div>
+    </div>
+    <div class="field" id="dDateField">
+      <label for="dDate">Expected date</label>
+      <input type="date" id="dDate">
+    </div>
+    <div class="field" id="dCadenceField" hidden>
+      <label for="dCadence">Cadence</label>
+      <select id="dCadence">
+        <option value="biweekly">Every 2 weeks</option>
+        <option value="weekly">Weekly</option>
+        <option value="semimonthly">Twice a month</option>
+        <option value="monthly">Monthly</option>
+      </select>
+    </div>
+    <div class="field" id="dAnchorField" hidden>
+      <label for="dAnchor">Next payday</label>
+      <input type="date" id="dAnchor">
+    </div>
+    <div class="field-row" id="dSemiFields" hidden>
+      <div class="field">
+        <label for="dDay1">First payday</label>
+        <input type="number" id="dDay1" min="1" max="31" inputmode="numeric" value="15">
+      </div>
+      <div class="field">
+        <label for="dDay2">Second payday</label>
+        <input type="number" id="dDay2" min="1" max="31" inputmode="numeric" value="31">
+        <div class="help">31 means the last day of the month.</div>
+      </div>
+    </div>
+    <div class="field" id="dMonthlyField" hidden>
+      <label for="dDayM">Day of month</label>
+      <input type="number" id="dDayM" min="1" max="31" inputmode="numeric" placeholder="1–31">
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn danger" id="dDelete" hidden>Delete</button>
+      <button type="button" class="btn ghost" data-close>Cancel</button>
+      <button type="submit" class="btn" id="dSave">Save deposit</button>
+    </div>
+  </form>
+</div></dialog>
+
+<dialog id="driveDialog"><div class="sheet">
+  <h2>Restore from Google Drive</h2>
+  <div id="driveList"></div>
+  <div class="sheet-actions"><button type="button" class="btn ghost" data-close>Cancel</button></div>
+</div></dialog>
+
+<dialog id="billDialog"><div class="sheet">
+  <h2 id="billDlgTitle">Add a bill</h2>
+  <form id="billForm">
+    <div class="field">
+      <label for="bName">Name</label>
+      <input type="text" id="bName" placeholder="e.g. Chase Sapphire, PG&amp;E" required maxlength="40">
+    </div>
+    <div class="field">
+      <label>Type</label>
+      <div class="seg" id="bKind">
+        <button type="button" data-v="card" class="on">Credit card</button>
+        <button type="button" data-v="utility">Utility / other</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Icon</label>
+      <div class="ico-grid" id="bIconGrid"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="bAmount">Amount due ($)</label>
+        <input type="number" id="bAmount" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required>
+      </div>
+      <div class="field">
+        <label for="bDueDay">Due day of month</label>
+        <input type="number" id="bDueDay" min="1" max="31" inputmode="numeric" placeholder="1–31" required>
+      </div>
+    </div>
+    <div class="field">
+      <label for="bAccount">Pays from</label>
+      <select id="bAccount" required></select>
+      <div class="help">The checking account this bill is paid from.</div>
+    </div>
+    <div class="switch-row">
+      <div>
+        <div class="lab">Autopay is on</div>
+        <div class="desc">Autopay bills roll to next month automatically on their due date. Bills without autopay wait for you to mark them paid.</div>
+      </div>
+      <button type="button" class="toggle" id="bAutopay" role="switch" aria-checked="false" aria-label="Autopay"></button>
+    </div>
+    <div id="bAutopayOpts" hidden>
+      <div class="field">
+        <label>Autopay draws</label>
+        <div class="seg" id="bApMode">
+          <button type="button" data-v="full" class="on">Full balance</button>
+          <button type="button" data-v="fixed">Fixed amount</button>
+        </div>
+      </div>
+      <div class="field" id="bApAmountField" hidden>
+        <label for="bApAmount">Fixed payment ($)</label>
+        <input type="number" id="bApAmount" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 150.00">
+        <div class="help">This amount is drafted every cycle regardless of the statement balance.</div>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn danger" id="bDelete" hidden>Delete</button>
+      <button type="button" class="btn ghost" data-close>Cancel</button>
+      <button type="submit" class="btn" id="bSave">Save bill</button>
+    </div>
+  </form>
+</div></dialog>
+
+<dialog id="acctDialog"><div class="sheet">
+  <h2 id="acctDlgTitle">Add a checking account</h2>
+  <form id="acctForm">
+    <div class="field">
+      <label for="aName">Account name</label>
+      <input type="text" id="aName" placeholder="e.g. Chase Checking …1234" required maxlength="40">
+    </div>
+    <div class="field" id="aModeField" hidden>
+      <label>Balance update</label>
+      <div class="seg" id="aMode">
+        <button type="button" data-v="set" class="on">Set balance</button>
+        <button type="button" data-v="post">Post amount</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="aBalance" id="aBalanceLabel">Current balance ($)</label>
+      <input type="number" id="aBalance" step="0.01" inputmode="decimal" placeholder="0.00" required>
+      <div class="help" id="aBalanceHelp" hidden>Adds onto the current balance — use a negative amount to subtract.</div>
+      <div class="help" id="aPreview" hidden></div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn danger" id="aDelete" hidden>Delete</button>
+      <button type="button" class="btn ghost" data-close>Cancel</button>
+      <button type="submit" class="btn">Save account</button>
+    </div>
+  </form>
+</div></dialog>
+
+<script>
+"use strict";
+/* ============ state ============ */
+const KEY = "cashline.v1";
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+let state = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){ const s = JSON.parse(raw); if(s && s.accounts && s.bills) return normalize(s); }
+  }catch(e){}
+  return normalize({});
+}
+function normalize(s){
+  s.accounts = Array.isArray(s.accounts) ? s.accounts : [];
+  s.bills = Array.isArray(s.bills) ? s.bills : [];
+  s.deposits = Array.isArray(s.deposits) ? s.deposits : [];
+  s.payments = Array.isArray(s.payments) ? s.payments : [];
+  s.scheduled = Array.isArray(s.scheduled) ? s.scheduled : [];
+  s.bills.forEach(b=>{ b.pending = +b.pending || 0; b.lastRolledCycle = b.lastRolledCycle || null; });
+  s.settings = Object.assign({leadDays:5, browserNotif:false, deductOnPaid:true}, s.settings||{});
+  s.notified = s.notified || {};
+  return s;
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+function uid(){ return (crypto.randomUUID ? crypto.randomUUID() : "id"+Date.now()+Math.random().toString(16).slice(2)); }
+
+/* ============ money & dates ============ */
+const fmtUSD = new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"});
+const money = n => fmtUSD.format(n||0);
+const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const today = () => startOfDay(new Date());
+function clampDate(y,m,day){ const dim = new Date(y, m+1, 0).getDate(); return new Date(y, m, Math.min(day, dim)); }
+function cycleKey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+function daysBetween(a,b){ return Math.round((startOfDay(b)-startOfDay(a))/86400000); }
+const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmtDate(d){ return MON[d.getMonth()]+" "+d.getDate(); }
+function relDays(n){
+  if(n===0) return "Due today";
+  if(n===1) return "Due tomorrow";
+  if(n>1) return "Due in "+n+" days";
+  return (-n)+(n===-1?" day":" days")+" overdue";
+}
+
+/* Cycle key of the most recent occurrence strictly before today.
+   New bills start with this as lastPaidCycle so they aren't born overdue. */
+function initialPaidCycle(dueDay){
+  const t = today();
+  for(let i=0;i>=-1;i--){
+    const d = clampDate(t.getFullYear(), t.getMonth()+i, dueDay);
+    if(d < t) return cycleKey(d);
+  }
+  const d = clampDate(t.getFullYear(), t.getMonth()-2, dueDay);
+  return cycleKey(d);
+}
+
+/* Next unpaid due date for a bill.
+   Manual bills stay put (overdue) until marked paid.
+   Autopay bills are assumed paid on the due date and roll forward. */
+function nextDue(bill){
+  const t = today();
+  for(let i=-2;i<=3;i++){
+    const d = clampDate(t.getFullYear(), t.getMonth()+i, bill.dueDay);
+    const key = cycleKey(d);
+    if(bill.lastPaidCycle && bill.lastPaidCycle >= key) continue;
+    if(scheduledForCycle(bill.id, key)) continue; /* a held payment covers this cycle */
+    if(d >= t) return {date:d, key, days:daysBetween(t,d), overdue:false};
+    if(!bill.autopay) return {date:d, key, days:daysBetween(t,d), overdue:true};
+    /* autopay bill past its date: assume it ran, keep walking */
+  }
+  const d = clampDate(t.getFullYear(), t.getMonth()+4, bill.dueDay);
+  return {date:d, key:cycleKey(d), days:daysBetween(t,d), overdue:false};
+}
+
+function upcoming(windowDays){
+  return state.bills.map(b => ({bill:b, due:nextDue(b)}))
+    .filter(x => x.due.overdue || x.due.days <= windowDays)
+    .sort((a,b) => a.due.date - b.due.date || a.bill.name.localeCompare(b.bill.name));
+}
+function acctById(id){ return state.accounts.find(a=>a.id===id); }
+function acctName(id){ const a = acctById(id); return a ? a.name : "No account"; }
+
+/* ---- bill icons ----
+   Two kinds: brand marks (self-colored fills on a tile) and category glyphs
+   (white stroke on a solid color tile). All inline SVG — no external images. */
+const BRAND_FONT = 'font-family="system-ui,-apple-system,sans-serif"';
+const ICONS = {
+  /* — banks / card issuers (simplified brand-style marks) — */
+  chase:   {label:"Chase", bg:"#FFFFFF",
+    svg:`<path fill="#1178C5" fill-rule="evenodd" d="M8.1 3.4h7.8l4.7 4.7v7.8l-4.7 4.7H8.1l-4.7-4.7V8.1Zm1 5.7v5.8h5.8V9.1Z"/>`},
+  boa:     {label:"Bank of America", bg:"#FFFFFF",
+    svg:`<g stroke-width="2.4" stroke-linecap="round" fill="none">
+      <path d="M4.5 15.5 13 5.5" stroke="#012169"/>
+      <path d="M8 18.5 16.5 8.5" stroke="#E31837"/>
+      <path d="M11.5 20.5 20 11" stroke="#012169"/></g>`},
+  amex:    {label:"Amex", bg:"#006FCF",
+    svg:`<text x="12" y="14.6" text-anchor="middle" font-size="6.4" font-weight="800" fill="#FFFFFF" ${BRAND_FONT}>AMEX</text>`},
+  citi:    {label:"Citi", bg:"#FFFFFF",
+    svg:`<text x="12" y="17" text-anchor="middle" font-size="9.5" font-weight="700" fill="#013B72" ${BRAND_FONT}>citi</text>
+      <path d="M7.6 9.8a5.9 5.9 0 0 1 8.8 0" stroke="#EE1C25" stroke-width="1.7" fill="none" stroke-linecap="round"/>`},
+  discover:{label:"Discover", bg:"#FFFFFF",
+    svg:`<text x="9.6" y="15.6" text-anchor="middle" font-size="7.4" font-weight="800" fill="#221F1F" ${BRAND_FONT}>DIS</text>
+      <circle cx="16.8" cy="13.2" r="3.5" fill="#F76B1C"/>`},
+  wells:   {label:"Wells Fargo", bg:"#D71E28",
+    svg:`<text x="12" y="15.9" text-anchor="middle" font-size="8.6" font-weight="800" fill="#FFCD41" ${BRAND_FONT}>WF</text>`},
+  capone:  {label:"Capital One", bg:"#FFFFFF",
+    svg:`<text x="11.6" y="14.2" text-anchor="middle" font-size="9" font-weight="800" fill="#013D5B" ${BRAND_FONT}>C</text>
+      <path d="M4.5 17c5.5-.6 10.5-2.4 15-5.6" stroke="#CC2427" stroke-width="1.8" fill="none" stroke-linecap="round"/>`},
+  usbank:  {label:"U.S. Bank", bg:"#FFFFFF",
+    svg:`<path d="M12 3.2 5.8 5.4v5.2c0 4.2 2.6 7.3 6.2 8.9 3.6-1.6 6.2-4.7 6.2-8.9V5.4Z" fill="#0C2074"/>
+      <text x="12" y="13.8" text-anchor="middle" font-size="6" font-weight="800" fill="#FFFFFF" ${BRAND_FONT}>US</text>
+      <path d="M7.2 16h9.6" stroke="#D0021B" stroke-width="1.5" stroke-linecap="round"/>`},
+  /* — categories (white glyph on colored tile) — */
+  card:  {label:"Credit card", bg:"#3B5268", stroke:true, svg:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15.5h4"/>'},
+  bank:  {label:"Bank",        bg:"#5B6B7C", stroke:true, svg:'<path d="M3 9.5 12 3.5l9 6"/><path d="M5.5 10v7.5M10 10v7.5M14 10v7.5M18.5 10v7.5"/><path d="M4 17.5h16M3 20.5h18"/>'},
+  bolt:  {label:"Electricity", bg:"#F59E0B", stroke:true, svg:'<path d="M13 2.5 5.5 13.5h5L11 21.5l7.5-11h-5z"/>'},
+  drop:  {label:"Water",       bg:"#2F80ED", stroke:true, svg:'<path d="M12 3c3.5 4.4 6 7.6 6 10.4a6 6 0 0 1-12 0C6 10.6 8.5 7.4 12 3Z"/>'},
+  flame: {label:"Gas",         bg:"#F2711C", stroke:true, svg:'<path d="M12 2.5c.8 3.2-4.5 5-4.5 9.7a4.5 4.5 0 0 0 9 0c0-2-.9-3.6-2.1-4.7.1 1.4-.6 2.4-1.5 2.9.3-2.6-.1-5.6-.9-7.9Z"/>'},
+  wifi:  {label:"Internet",    bg:"#7C5CE0", stroke:true, svg:'<path d="M4 9.5a12.5 12.5 0 0 1 16 0M7 13a8.5 8.5 0 0 1 10 0M10 16.3a4.3 4.3 0 0 1 4 0"/><circle cx="12" cy="19.3" r="1.1" fill="#fff" stroke="none"/>'},
+  phone: {label:"Phone",       bg:"#12A594", stroke:true, svg:'<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>'},
+  trash: {label:"Trash",       bg:"#7A8494", stroke:true, svg:'<path d="M4.5 7h15M9.5 7V4.5h5V7M6 7l1 13.5h10L18 7"/><path d="M10 10.5v6.5M14 10.5v6.5"/>'},
+  home:  {label:"Rent / home", bg:"#2FA36B", stroke:true, svg:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/>'},
+  shield:{label:"Insurance",   bg:"#4F63D2", stroke:true, svg:'<path d="M12 3 5 5.5v6c0 4.6 3 8 7 9.5 4-1.5 7-4.9 7-9.5v-6Z"/>'},
+  car:   {label:"Car",         bg:"#C75146", stroke:true, svg:'<path d="M5.5 13.5 7 8.5h10l1.5 5"/><rect x="4" y="13.5" width="16" height="4.8" rx="1.5"/><path d="M7.5 18.3v1.7M16.5 18.3v1.7"/>'},
+  tv:    {label:"TV / stream", bg:"#D6336C", stroke:true, svg:'<rect x="3" y="5" width="18" height="13" rx="2"/><path d="m10.5 8.8 4.2 2.7-4.2 2.7z"/><path d="M8 21h8"/>'},
+  bill:  {label:"Other bill",  bg:"#64748B", stroke:true, svg:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2Z"/><path d="M9 8h6M9 12h6"/>'},
+};
+const ICON_RULES = [
+  [/chase|sapphire|freedom/i, "chase"],
+  [/amex|american\s*express|blue cash|platinum card|gold card/i, "amex"],
+  [/citi\b|citibank|double cash/i, "citi"],
+  [/discover/i, "discover"],
+  [/bank of america|bofa|b of a/i, "boa"],
+  [/wells\s*fargo|wells/i, "wells"],
+  [/capital\s*one|cap\s*one|quicksilver|venture/i, "capone"],
+  [/u\.?s\.?\s*bank/i, "usbank"],
+  [/electr|power|energy|edison|pg&e|pge/i, "bolt"],
+  [/water|sewer|sewage/i, "drop"],
+  [/\bgas\b|propane/i, "flame"],
+  [/internet|wifi|fiber|broadband|xfinity|comcast|spectrum/i, "wifi"],
+  [/phone|mobile|wireless|verizon|t-?mobile|at&t/i, "phone"],
+  [/trash|garbage|waste|recycl/i, "trash"],
+  [/rent|mortgage|hoa|lease|apartment/i, "home"],
+  [/insur|geico|allstate|progressive/i, "shield"],
+  [/\bcar\b|\bauto\b|vehicle/i, "car"],
+  [/tv|cable|stream|netflix|hulu|disney|spotify|youtube/i, "tv"],
+];
+function suggestIcon(name, kind){
+  for(const [re, id] of ICON_RULES) if(re.test(name||"")) return id;
+  return kind==="card" ? "card" : "bill";
+}
+function iconSVG(id){
+  const def = ICONS[id] || ICONS.bill;
+  /* zoom the artwork toward the tile edges — the drawings keep a safety margin in the viewBox */
+  return `<svg viewBox="0 0 24 24" aria-hidden="true" ${def.stroke?'class="stroke"':''}><g transform="translate(12 12) scale(1.12) translate(-12 -12)">${def.svg}</g></svg>`;
+}
+function iconTile(id, cls){
+  const def = ICONS[id] || ICONS.bill;
+  return `<span class="${cls||"bill-ico"}" style="background:${def.bg}">${iconSVG(id)}</span>`;
+}
+function billIcon(b){ return b.icon && ICONS[b.icon] ? b.icon : suggestIcon(b.name, b.kind); }
+
+/* ---- autopay draft amount ----
+   full  → pays the statement balance (b.amount)
+   fixed → pays a set amount each cycle regardless of the statement */
+function autopayAmountFor(b){
+  return (b.autopay && b.autopayMode==="fixed") ? (b.autopayAmount||0) : (b.amount||0);
+}
+/* What actually leaves the account for this bill's occurrence. */
+function billOutflow(b){ return b.autopay ? autopayAmountFor(b) : (b.amount||0); }
+
+/* ---- posted charges (next statement) ----
+   Amounts posted to a bill wait in `pending` and fold into the amount due
+   only once the current cycle's due date has passed — like a charge that
+   lands on the next statement. */
+function lastPassedDueKey(b){
+  const t = today();
+  for(let i=0;i>=-2;i--){
+    const d = clampDate(t.getFullYear(), t.getMonth()+i, b.dueDay);
+    if(d < t) return cycleKey(d);
+  }
+  return null;
+}
+function processBillRolls(){
+  let changed = false; const folded = [];
+  state.bills.forEach(b=>{
+    const k = lastPassedDueKey(b);
+    if(!k || (b.lastRolledCycle && b.lastRolledCycle >= k)) return;
+    if(b.pending > 0){
+      b.amount = Math.round((b.amount + b.pending)*100)/100;
+      folded.push({name:b.name, amt:b.pending});
+      b.pending = 0;
+    }
+    b.lastRolledCycle = k;
+    changed = true;
+  });
+  if(changed) save();
+  if(folded.length && !document.hidden){
+    toast(folded.length===1
+      ? `${money(folded[0].amt)} in posted charges moved onto ${esc(folded[0].name)}'s statement`
+      : `Posted charges moved onto ${folded.length} statements`);
+  }
+  return changed;
+}
+
+/* ---- scheduled (held) payments ---- */
+function scheduledForCycle(billId, key){ return state.scheduled.find(s=>s.billId===billId && s.cycle===key); }
+function upcomingScheduled(windowDays){
+  const t = today();
+  return state.scheduled.map(s=>{
+    const d = parseISO(s.date) || t;
+    return {sch:s, date:d, days:daysBetween(t,d)};
+  }).filter(x => x.days <= windowDays)
+    .sort((a,b)=> a.date - b.date || a.sch.name.localeCompare(b.sch.name));
+}
+/* Post any scheduled payment whose date has arrived: debit the account and
+   mark the bill's cycle paid. Runs at load and whenever time may have passed. */
+function processScheduled(){
+  const t = today(), posted = [];
+  state.scheduled.slice().forEach(s=>{
+    const d = parseISO(s.date);
+    if(!(d && d <= t)) return;
+    const b = state.bills.find(x=>x.id===s.billId);
+    const acct = acctById(s.accountId);
+    if(b && (!b.lastPaidCycle || b.lastPaidCycle < s.cycle)) b.lastPaidCycle = s.cycle;
+    if(state.settings.deductOnPaid && acct) acct.balance = Math.round((acct.balance - (s.amount||0))*100)/100;
+    state.payments.push({id:uid(), billId:s.billId, name:s.name, amount:s.amount, date:s.date, accountId:s.accountId, cycle:s.cycle, wasScheduled:true});
+    posted.push(s);
+  });
+  if(!posted.length) return false;
+  const ids = new Set(posted.map(s=>s.id));
+  state.scheduled = state.scheduled.filter(s=>!ids.has(s.id));
+  if(state.payments.length > 200) state.payments = state.payments.slice(-200);
+  save();
+  if(!document.hidden){
+    toast(posted.length===1
+      ? `Scheduled payment posted — ${esc(posted[0].name)}, ${money(posted[0].amount)}`
+      : `${posted.length} scheduled payments posted`);
+  }
+  if(state.settings.browserNotif && "Notification" in window && Notification.permission==="granted"){
+    posted.forEach(s=>{ try{ new Notification(`Payment posted: ${s.name}`, {body:`${money(s.amount)} from ${acctName(s.accountId)}`, tag:"posted-"+s.id}); }catch(e){} });
+  }
+  return true;
+}
+
+/* ---- expected deposits ---- */
+function parseISO(s){
+  if(typeof s!=="string") return null;
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? new Date(+m[1], +m[2]-1, +m[3]) : null;
+}
+function addDays(d, n){ const r = new Date(d); r.setDate(r.getDate()+n); return r; }
+const CADENCE_LABEL = {weekly:"Weekly", biweekly:"Every 2 weeks", semimonthly:"Twice a month", monthly:"Monthly"};
+
+/* Occurrences of a deposit inside the next `windowDays`.
+   Payroll rolls forward automatically; a one-off past its date stays
+   listed ("awaiting") until marked received. */
+function depositOccurrences(dep, windowDays){
+  const t = today(), end = addDays(t, windowDays), occ = [];
+  if(dep.type==="oneoff"){
+    const d = parseISO(dep.date);
+    if(d && d<=end) occ.push({date:d, days:daysBetween(t,d), awaiting:d<t});
+    return occ;
+  }
+  if(dep.cadence==="weekly" || dep.cadence==="biweekly"){
+    const step = dep.cadence==="weekly" ? 7 : 14;
+    let d = parseISO(dep.anchor);
+    if(!d) return occ;
+    while(d < t) d = addDays(d, step);
+    while(d <= end){ occ.push({date:d, days:daysBetween(t,d), awaiting:false}); d = addDays(d, step); }
+  }else if(dep.cadence==="monthly"){
+    for(let i=0;i<=2;i++){
+      const d = clampDate(t.getFullYear(), t.getMonth()+i, dep.day1);
+      if(d>=t && d<=end) occ.push({date:d, days:daysBetween(t,d), awaiting:false});
+    }
+  }else{ /* semimonthly */
+    for(let i=0;i<=2;i++) for(const day of [dep.day1, dep.day2]){
+      const d = clampDate(t.getFullYear(), t.getMonth()+i, day);
+      if(d>=t && d<=end) occ.push({date:d, days:daysBetween(t,d), awaiting:false});
+    }
+    occ.sort((a,b)=>a.date-b.date);
+  }
+  return occ;
+}
+function upcomingDeposits(windowDays){
+  const out = [];
+  state.deposits.forEach(dep => depositOccurrences(dep, windowDays).forEach(occ => out.push({dep, occ})));
+  return out.sort((a,b)=> a.occ.date - b.occ.date || a.dep.name.localeCompare(b.dep.name));
+}
+
+/* Chronological running-balance projection for one account.
+   Outflows apply before same-day inflows (conservative); awaiting one-offs
+   count as arriving today. */
+function accountEvents(acct, windowDays){
+  const evts = [];
+  upcoming(windowDays).filter(x=>x.bill.accountId===acct.id)
+    .forEach(x => evts.push({date:x.due.overdue? today() : x.due.date, amt:-billOutflow(x.bill), rank:0, key:"bill:"+x.bill.id}));
+  upcomingScheduled(windowDays).filter(x=>x.sch.accountId===acct.id)
+    .forEach(x => evts.push({date:x.days<0? today() : x.date, amt:-(x.sch.amount||0), rank:0, key:"sched:"+x.sch.id}));
+  upcomingDeposits(windowDays).filter(x=>x.dep.accountId===acct.id)
+    .forEach(x => evts.push({date:x.occ.awaiting? today() : x.occ.date, amt:+(x.dep.amount||0), rank:1, key:"dep:"+x.dep.id+":"+calKey(x.occ.date)}));
+  return evts.sort((a,b)=> a.date-b.date || a.rank-b.rank);
+}
+function projectAccount(acct, windowDays){
+  let run = acct.balance, min = acct.balance, minDate = today(), out = 0, inn = 0;
+  accountEvents(acct, windowDays).forEach(e=>{
+    run = Math.round((run + e.amt)*100)/100;
+    if(e.amt<0) out -= e.amt; else inn += e.amt;
+    if(run < min){ min = run; minDate = e.date; }
+  });
+  return {need:out, expectedIn:inn, end:run, min, minDate};
+}
+/* Per-event running balances: "bill:<id>" → {before, after}, rebuilt each render. */
+let projMap = new Map();
+function buildProjections(windowDays){
+  const map = new Map();
+  state.accounts.forEach(a=>{
+    let run = a.balance;
+    accountEvents(a, windowDays).forEach(e=>{
+      const before = run;
+      run = Math.round((run + e.amt)*100)/100;
+      map.set(e.key, {before, after:run});
+    });
+  });
+  return map;
+}
+function shortAccounts(windowDays){
+  return state.accounts.map(a => ({acct:a, ...projectAccount(a, windowDays)}))
+    .filter(x => x.min < -0.005);
+}
+function attentionCount(){
+  const lead = state.settings.leadDays;
+  const manualSoon = upcoming(30).filter(x => !x.bill.autopay && (x.due.overdue || x.due.days<=lead)).length;
+  return manualSoon + shortAccounts(30).length;
+}
+
+/* ============ motion helpers ============ */
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)");
+/* Collapse-and-fade an element out, then run the re-render. */
+function animateOut(el, done){
+  if(!el || REDUCED.matches){ done(); return; }
+  el.style.maxHeight = el.scrollHeight+"px";
+  void el.offsetHeight; /* flush so the transition has a start value */
+  el.classList.add("removing");
+  setTimeout(done, 300);
+}
+
+/* ============ rendering ============ */
+let activeTab = "home";
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function render(animateEnter){
+  $$("nav.tabs button").forEach(b => b.classList.toggle("active", b.dataset.tab===activeTab));
+  const fab = $("#fab");
+  fab.hidden = !(activeTab==="bills" || activeTab==="accounts");
+  fab.setAttribute("aria-label", activeTab==="bills" ? "Add bill" : "Add account");
+  const v = $("#view");
+  projMap = buildProjections(30);
+  if(activeTab==="home") v.innerHTML = renderHome();
+  else if(activeTab==="bills") v.innerHTML = renderBills();
+  else if(activeTab==="accounts") v.innerHTML = renderAccounts();
+  else v.innerHTML = renderSettings();
+  const n = attentionCount();
+  const badge = $("#homeBadge");
+  badge.hidden = n===0; badge.textContent = n;
+  if(animateEnter && !REDUCED.matches){
+    v.classList.add("enter");
+    setTimeout(()=>v.classList.remove("enter"), 450);
+  }
+  updateCalCompact();
+  save();
+}
+
+/* "$X at pay → $Y after" line under a payment card's amount. */
+function projLineHTML(key){
+  const p = projMap.get(key);
+  if(!p) return "";
+  return `<div class="proj-line">Account: <span class="amt">${money(p.before)}</span> at pay → <span class="amt ${p.after<-0.005?'neg':''}">${money(p.after)}</span> after</div>`;
+}
+
+function billCardHTML(x, {showDate=false} = {}){
+  const b = x.bill, due = x.due;
+  const paidThisCycle = false; /* paid bills roll forward, so anything listed is unpaid */
+  const lead = state.settings.leadDays;
+  const needsAction = !b.autopay && (due.overdue || due.days <= lead);
+  return `<div class="bill-card" data-bill="${b.id}">
+    <div class="bill-top">
+      ${iconTile(billIcon(b))}
+      <span class="bill-name">${esc(b.name)}</span>
+      <span class="bill-amt">${money(b.amount)}</span>
+    </div>
+    ${projLineHTML("bill:"+b.id)}
+    <div class="bill-meta">
+      ${due.overdue ? `<span class="chip overdue">Overdue</span>` : ``}
+      ${b.autopay
+        ? `<span class="chip autopay">⚡ Autopay${b.autopayMode==="fixed" ? " · "+money(autopayAmountFor(b))+" fixed" : ""}</span>`
+        : `<span class="chip manual">Manual pay</span>`}
+      ${state.scheduled.some(s=>s.billId===b.id) ? `<span class="chip scheduled">⏱ Payment scheduled</span>` : ``}
+      ${b.pending > 0 ? `<span class="chip pending">+${money(b.pending)} next stmt</span>` : ``}
+      <span class="chip acct">${esc(acctName(b.accountId))}</span>
+      ${showDate ? `<span class="chip acct">${fmtDate(due.date)} · ${relDays(due.days)}</span>` : ``}
+    </div>
+    <div class="bill-actions">
+      <button class="btn ghost" data-bal="${b.id}">Balance</button>
+      <button class="btn subtle" data-edit="${b.id}">Edit</button>
+      ${!b.autopay ? `<button class="btn push" data-pay="${b.id}">Mark paid</button>` : ``}
+    </div>
+  </div>`;
+}
+
+/* A held payment waiting for its date — shown on the timeline and calendar. */
+function schedCardHTML(x, {showDate=false} = {}){
+  const s = x.sch;
+  const srcBill = state.bills.find(b=>b.id===s.billId);
+  return `<div class="bill-card sched" data-sched="${s.id}">
+    <div class="bill-top">
+      ${iconTile(srcBill ? billIcon(srcBill) : "bill")}
+      <span class="bill-name">${esc(s.name)}</span>
+      <span class="bill-amt">${money(s.amount)}</span>
+    </div>
+    ${projLineHTML("sched:"+s.id)}
+    <div class="bill-meta">
+      <span class="chip scheduled">⏱ Scheduled</span>
+      <span class="chip acct">${esc(acctName(s.accountId))}</span>
+      ${showDate ? `<span class="chip acct">${fmtDate(x.date)}${x.days<0? "" : " · "+relDays(x.days).replace("Due ","")}</span>` : ``}
+    </div>
+    <div class="bill-actions">
+      <button class="btn" data-payschednow="${s.id}">Pay now</button>
+      <button class="btn subtle" data-cancelsched="${s.id}">Cancel</button>
+    </div>
+  </div>`;
+}
+
+function renderHome(){
+  const t = today();
+  if(state.accounts.length===0 && state.bills.length===0){
+    return `<header class="app-head"><h1>Cashline</h1><span class="today">${DOW[t.getDay()]}, ${fmtDate(t)}</span></header>
+      <div class="empty">
+        <p><b>Track every due date in one place.</b></p>
+        <p>Add your checking accounts, then the credit cards and utility bills that pull from them.</p>
+        <button class="btn" data-goto="accounts">Add first account</button>
+        <button class="btn ghost" id="seedBtn" style="margin-left:8px">Load sample data</button>
+      </div>`;
+  }
+  const cash = state.accounts.reduce((s,a)=>s+a.balance,0);
+  const up30 = upcoming(30);
+  const sched30 = upcomingScheduled(30);
+  const due30 = up30.reduce((s,x)=>s+billOutflow(x.bill),0) + sched30.reduce((s,x)=>s+(x.sch.amount||0),0);
+  const manualCount = up30.filter(x=>!x.bill.autopay).length;
+
+  /* alerts */
+  const lead = state.settings.leadDays;
+  const alerts = [];
+  up30.filter(x=>!x.bill.autopay && x.due.overdue).forEach(x=>{
+    alerts.push(`<div class="alert danger"><span class="dot"></span><span><b>${esc(x.bill.name)}</b> is ${-x.due.days} day${x.due.days===-1?"":"s"} past due — <span class="amt">${money(x.bill.amount)}</span> from ${esc(acctName(x.bill.accountId))}.</span></div>`);
+  });
+  up30.filter(x=>!x.bill.autopay && !x.due.overdue && x.due.days<=lead).forEach(x=>{
+    alerts.push(`<div class="alert warn"><span class="dot"></span><span><b>${esc(x.bill.name)}</b> needs a manual payment of <span class="amt">${money(x.bill.amount)}</span> — ${relDays(x.due.days).toLowerCase()}.</span></div>`);
+  });
+  shortAccounts(30).forEach(x=>{
+    alerts.push(`<div class="alert danger"><span class="dot"></span><span><b>${esc(x.acct.name)}</b> is projected to dip <span class="amt">${money(-x.min)}</span> below zero around ${fmtDate(x.minDate)}, even counting expected deposits.</span></div>`);
+  });
+
+  /* group upcoming bills and deposits by date */
+  const dep30 = upcomingDeposits(30);
+  const expectedIn = dep30.reduce((s,x)=>s+(x.dep.amount||0),0);
+  const groups = new Map();
+  const groupFor = (date, days) => {
+    const k = calKey(date);
+    if(!groups.has(k)) groups.set(k, {key:k, date, days, hasOverdueBill:false, items:[]});
+    return groups.get(k);
+  };
+  up30.forEach(x=>{
+    const g = groupFor(x.due.date, x.due.days);
+    if(x.due.overdue) g.hasOverdueBill = true;
+    g.items.push({kind:"bill", x});
+  });
+  dep30.forEach(x=> groupFor(x.occ.date, x.occ.days).items.push({kind:"dep", x}));
+  sched30.forEach(x=> groupFor(x.days<0? t : x.date, x.days).items.push({kind:"sched", x}));
+  const ordered = [...groups.values()].sort((a,b)=>a.date-b.date);
+
+  let rail = "";
+  if(ordered.length===0){
+    rail = `<div class="empty"><p><b>Nothing due in the next 30 days.</b></p><p>Add bills to see them on the timeline.</p><button class="btn" data-goto="bills">Add a bill</button></div>`;
+  }else{
+    const hasTodayGroup = ordered.some(g=>g.days===0);
+    const todayMarker = `<div class="day now" id="day-now">
+        <div class="coin now"><span class="dow">${DOW[t.getDay()]}</span><span class="num">${t.getDate()}</span></div>
+        <p class="now-label">Today · ${MON[t.getMonth()]} ${t.getDate()}</p>
+      </div>`;
+    let markerPlaced = hasTodayGroup; /* an exact-today group already stands in for the line */
+    const rows = ordered.map(g=>{
+      const d = g.date;
+      const cls = g.days===0 ? "today" : (g.hasOverdueBill ? "overdue" : "");
+      const label = g.days<0 && !g.hasOverdueBill ? `${MON[d.getMonth()]} ${d.getDate()} · expected, not yet received`
+                  : `${MON[d.getMonth()]} ${d.getDate()} · ${relDays(g.days)}`;
+      let prefix = "";
+      if(!markerPlaced && g.days > 0){ prefix = todayMarker; markerPlaced = true; }
+      return prefix + `<div class="day ${cls}" id="day-${g.key}">
+        <div class="coin"><span class="dow">${g.hasOverdueBill?"!":DOW[d.getDay()]}</span><span class="num">${d.getDate()}</span></div>
+        <p class="when ${g.hasOverdueBill?'urgent':''}">${label}</p>
+        ${g.items.map(it => it.kind==="bill" ? billCardHTML(it.x) : it.kind==="sched" ? schedCardHTML(it.x) : depCardHTML(it.x)).join("")}
+      </div>`;
+    });
+    if(!markerPlaced) rows.push(todayMarker); /* everything is overdue/past — today sits at the end */
+    rail = `<div class="rail">` + rows.join("") + `</div>`;
+  }
+
+  return `<header class="app-head"><h1>Cashline</h1><span class="today">${DOW[t.getDay()]}, ${fmtDate(t)}</span></header>
+    <div class="cal-sticky" id="calSticky">${calendarHTML()}</div>
+    <div class="tiles">
+      <div class="tile"><div class="label">Cash on hand</div><div class="value">${money(cash)}</div><div class="hint">${state.accounts.length} account${state.accounts.length===1?"":"s"}</div></div>
+      <div class="tile ${due30>cash?'danger':''}"><div class="label">Due next 30 days</div><div class="value">${money(due30)}</div><div class="hint">${up30.length} bill${up30.length===1?"":"s"} · ${manualCount} manual${sched30.length? " · "+sched30.length+" scheduled":""}</div></div>
+      ${expectedIn>0 ? `<div class="tile wide"><div><div class="label">Expected deposits · 30 days</div><div class="hint">${dep30.length} deposit${dep30.length===1?"":"s"}</div></div><div class="value in">+${money(expectedIn)}</div></div>` : ""}
+    </div>
+    ${alerts.length? `<div class="alerts">${alerts.join("")}</div>` : ""}
+    <div class="rail-head"><h2>Next 30 days</h2></div>
+    ${rail}`;
+}
+
+function depCardHTML(x, {showDate=false} = {}){
+  const dep = x.dep, occ = x.occ;
+  return `<div class="bill-card dep" data-dep="${dep.id}">
+    <div class="bill-top">
+      <span class="bill-ico" style="background:#10B981"><svg viewBox="0 0 24 24" aria-hidden="true" class="stroke"><g transform="translate(12 12) scale(1.12) translate(-12 -12)"><path d="M12 3v11"/><path d="m7.5 9.5 4.5 4.5 4.5-4.5"/><path d="M4 20h16"/></g></svg></span>
+      <span class="bill-name">${esc(dep.name)}</span>
+      <span class="bill-amt in">+${money(dep.amount)}</span>
+    </div>
+    <div class="bill-meta">
+      ${occ.awaiting ? `<span class="chip awaiting">Awaiting</span>` : ``}
+      ${dep.type==="payroll" ? `<span class="chip payroll">↻ ${CADENCE_LABEL[dep.cadence]||"Payroll"}</span>` : `<span class="chip onetime">One-time</span>`}
+      <span class="chip acct">${esc(acctName(dep.accountId))}</span>
+      ${showDate ? `<span class="chip acct">${fmtDate(occ.date)}${occ.awaiting? "" : " · "+relDays(occ.days).replace("Due ","")}</span>` : ``}
+    </div>
+    <div class="bill-actions">
+      ${dep.type==="oneoff" ? `<button class="btn" data-received="${dep.id}">Mark received</button>` : ``}
+      <button class="btn subtle" data-editdep="${dep.id}">Edit</button>
+    </div>
+  </div>`;
+}
+
+/* Bills-page filter: free-text (bill or account name) + icon. */
+let billFilterText = "", billFilterIcon = null;
+function billMatchesFilter(b){
+  if(billFilterIcon && billIcon(b)!==billFilterIcon) return false;
+  const q = billFilterText.trim().toLowerCase();
+  if(!q) return true;
+  return b.name.toLowerCase().includes(q) || acctName(b.accountId).toLowerCase().includes(q);
+}
+function billsFilterBarHTML(){
+  if(state.bills.length===0) return "";
+  const used = [...new Set(state.bills.map(billIcon))];
+  const ordered = Object.keys(ICONS).filter(id=>used.includes(id));
+  const chips = ordered.length>1
+    ? `<div class="ico-filter">
+        <button type="button" class="fchip all ${!billFilterIcon?'on':''}" data-icofilter="">All</button>
+        ${ordered.map(id=>`<button type="button" class="fchip ${billFilterIcon===id?'on':''}" data-icofilter="${id}" title="${ICONS[id].label}" aria-label="Filter: ${ICONS[id].label}" aria-pressed="${billFilterIcon===id}">${iconTile(id,"ico-tile")}</button>`).join("")}
+      </div>` : "";
+  return `<div class="bills-filter">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="m15.5 15.5 4.5 4.5"/></svg>
+      <input type="search" id="billSearch" value="${esc(billFilterText)}" placeholder="Search bills or accounts" autocomplete="off" aria-label="Search bills">
+      <button type="button" class="clear-btn" id="billSearchClear" aria-label="Clear search" ${billFilterText?"":"hidden"}>✕</button>
+    </div>
+    ${chips}
+  </div>`;
+}
+function billsListHTML(){
+  const list = state.bills.filter(billMatchesFilter).map(b=>({bill:b, due:nextDue(b)}))
+    .sort((a,b)=> a.due.date - b.due.date || a.bill.name.localeCompare(b.bill.name));
+  let body;
+  if(state.bills.length===0){
+    body = `<div class="empty"><p><b>No bills yet.</b></p><p>Add each credit card and utility bill with its due day, amount, and the checking account it pays from.</p><button class="btn" id="addBillBtn">Add a bill</button></div>`;
+  }else if(list.length===0){
+    body = `<div class="empty" style="padding:24px"><p><b>No bills match.</b></p><p>Nothing named like that${billFilterIcon? " with this icon":""}.</p><button class="btn ghost" id="clearFiltersBtn">Clear filter</button></div>`;
+  }else{
+    const cards = list.filter(x=>x.bill.kind==="card");
+    const utils = list.filter(x=>x.bill.kind!=="card");
+    const sec = (label, arr) => arr.length ? `<div class="section-label">${label}</div>` + arr.map(x=>billCardHTML(x,{showDate:true})).join("") : "";
+    body = sec("Credit cards", cards) + sec("Utilities & other", utils);
+  }
+  /* deposits: hidden while icon-filtering (icons belong to bills); name filter applies */
+  let depBody = "";
+  if(!billFilterIcon){
+    const q = billFilterText.trim().toLowerCase();
+    const deps = state.deposits.filter(d=>!q || d.name.toLowerCase().includes(q) || acctName(d.accountId).toLowerCase().includes(q))
+      .map(dep=>({dep, occ: depositOccurrences(dep, 62)[0] || null}))
+      .sort((a,b)=> (a.occ?a.occ.date:Infinity) - (b.occ?b.occ.date:Infinity));
+    if(!(q && deps.length===0)){
+      depBody = `<div class="section-head"><div class="section-label">Expected deposits</div><button class="mini-btn" id="addDepBtn">+ Add deposit</button></div>` +
+        (deps.length===0
+          ? `<div class="empty" style="margin-top:0;padding:22px"><p>Track incoming money — a one-time payout or payroll on a schedule — and projections will count it.</p></div>`
+          : deps.map(d => d.occ
+              ? depCardHTML(d, {showDate:true})
+              : `<div class="bill-card dep" data-dep="${d.dep.id}">
+                  <div class="bill-top"><span class="bill-name">${esc(d.dep.name)}</span><span class="bill-amt in">+${money(d.dep.amount)}</span></div>
+                  <div class="bill-meta"><span class="chip acct">No upcoming date</span><span class="chip acct">${esc(acctName(d.dep.accountId))}</span></div>
+                  <div class="bill-actions"><button class="btn subtle" data-editdep="${d.dep.id}">Edit</button></div>
+                </div>`).join(""));
+    }
+  }
+  return body + depBody;
+}
+function renderBills(){
+  return `<h1 class="view-title">Bills &amp; deposits</h1><p class="view-sub">Tap a bill to edit its amount when a new statement arrives.</p>
+    ${billsFilterBarHTML()}
+    <div id="billsList">${billsListHTML()}</div>`;
+}
+
+function renderAccounts(){
+  let body;
+  if(state.accounts.length===0){
+    body = `<div class="empty"><p><b>No checking accounts yet.</b></p><p>Add each checking account and its current balance so Cashline can warn you before an autopay overdraws it.</p><button class="btn" id="addAcctBtn">Add an account</button></div>`;
+  }else{
+    body = state.accounts.map(a=>{
+      const p = projectAccount(a, 30);
+      const dips = p.min < -0.005;
+      const nBills = state.bills.filter(b=>b.accountId===a.id).length;
+      const nDeps = state.deposits.filter(d=>d.accountId===a.id).length;
+      const avail = a.balance + p.expectedIn;
+      const pct = p.need<=0 ? 0 : Math.min(100, Math.round(p.need / Math.max(avail, p.need) * 100));
+      return `<div class="card" data-acct="${a.id}">
+        <div class="row">
+          <div class="grow">
+            <div class="title-sm">${esc(a.name)}</div>
+            <div class="sub-sm">${nBills} bill${nBills===1?"":"s"}${nDeps? ` · ${nDeps} deposit${nDeps===1?"":"s"}`:""}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="amt big">${money(a.balance)}</div>
+            <div class="sub-sm">balance</div>
+          </div>
+          ${state.accounts.length>1 ? `<span class="drag-handle" data-draghandle="${a.id}" aria-hidden="true" title="Drag onto another account to transfer">
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+          </span>` : ``}
+        </div>
+        <div class="meter ${dips?'short':''}" role="img" aria-label="${money(p.need)} going out of ${money(avail)} available"><i style="width:${pct}%"></i></div>
+        <div class="meter-caption">
+          <span>30 days: out <span class="amt">${money(p.need)}</span>${p.expectedIn? ` · in <span class="amt">+${money(p.expectedIn)}</span>`:""}</span>
+          <span class="${dips?'neg':''}">${dips? "Dips "+money(-p.min)+" short ~"+fmtDate(p.minDate) : "ends at "+money(p.end)}</span>
+        </div>
+        <div class="bill-actions">
+          <button class="btn ghost" data-editacct="${a.id}">Update balance</button>
+          ${state.accounts.length>1 ? `<button class="btn ghost" data-transfer="${a.id}">Transfer</button>` : ``}
+        </div>
+      </div>`;
+    }).join("");
+  }
+  return `<h1 class="view-title">Accounts</h1><p class="view-sub">Keep balances current — Cashline flags any account that can't cover what's about to be drafted.</p>${body}`;
+}
+
+function renderSettings(){
+  const s = state.settings;
+  const notifState = !("Notification" in window) ? "unsupported" : Notification.permission;
+  let notifBtn;
+  if(notifState==="unsupported") notifBtn = `<span class="sub-sm">Not supported in this browser</span>`;
+  else if(notifState==="granted" && s.browserNotif) notifBtn = `<button type="button" class="toggle on" id="notifToggle" role="switch" aria-checked="true" aria-label="Browser notifications"></button>`;
+  else notifBtn = `<button type="button" class="toggle ${s.browserNotif && notifState==='granted' ? 'on':''}" id="notifToggle" role="switch" aria-checked="false" aria-label="Browser notifications"></button>`;
+  return `<h1 class="view-title">Settings</h1><p class="view-sub">Reminders and data.</p>
+  <div class="section-label">Reminders</div>
+  <div class="settings-card">
+    <div class="set-row">
+      <div>
+        <div class="lab" style="font-weight:600">Remind me before a due date</div>
+        <div class="sub-sm">Manual-pay bills raise an alert this many days ahead.</div>
+      </div>
+      <input type="number" id="leadDays" min="0" max="30" value="${s.leadDays}" inputmode="numeric" aria-label="Days before due date">
+    </div>
+    <div class="switch-row">
+      <div>
+        <div class="lab">Browser notifications</div>
+        <div class="desc">While Cashline is open, get a system notification when a manual bill enters its reminder window. Alerts always appear on the Home tab too.</div>
+      </div>
+      ${notifBtn}
+    </div>
+    <div class="switch-row">
+      <div>
+        <div class="lab">Update balances automatically</div>
+        <div class="desc">Subtract a bill from its checking account when marked paid, and add a deposit when marked received.</div>
+      </div>
+      <button type="button" class="toggle ${s.deductOnPaid?'on':''}" id="deductToggle" role="switch" aria-checked="${s.deductOnPaid}" aria-label="Deduct on mark paid"></button>
+    </div>
+  </div>
+  <div class="section-label">Data</div>
+  <div class="settings-card">
+    <div class="set-row"><div><div class="lab" style="font-weight:600">Export backup</div><div class="sub-sm">Download everything as a JSON file.</div></div><button class="btn ghost" id="exportBtn">Export</button></div>
+    <div class="set-row"><div><div class="lab" style="font-weight:600">Import backup</div><div class="sub-sm">Replaces current data with the file's contents.</div></div><button class="btn ghost" id="importBtn">Import</button></div>
+    <div class="set-row"><div><div class="lab" style="font-weight:600">Sample data</div><div class="sub-sm">Load example accounts and bills to explore.</div></div><button class="btn ghost" id="seedBtn2">Load</button></div>
+    <div class="set-row"><div><div class="lab" style="font-weight:600">Erase everything</div><div class="sub-sm">Deletes all accounts, bills, and settings on this device.</div></div><button class="btn danger" id="wipeBtn">Erase</button></div>
+  </div>
+  ${hasMcp() ? `
+  <div class="section-label">Google Drive</div>
+  <div class="settings-card">
+    <div class="set-row"><div><div class="lab" style="font-weight:600">Back up to Drive</div><div class="sub-sm">${s.lastDriveBackup ? "Last backup: "+new Date(s.lastDriveBackup).toLocaleString() : "Saves a JSON file named cashline-backup-… to your Drive."}</div></div><button class="btn ghost" id="driveBackupBtn">Back up</button></div>
+    <div class="set-row"><div><div class="lab" style="font-weight:600">Restore from Drive</div><div class="sub-sm">Pick a previous backup to replace the data on this device.</div></div><button class="btn ghost" id="driveRestoreBtn">Restore</button></div>
+  </div>` : `
+  <div class="section-label">Google Drive</div>
+  <div class="settings-card">
+    <div class="set-row"><div><div class="lab" style="font-weight:600">Drive backup</div><div class="sub-sm">Works when Cashline is opened from your Claude artifacts on claude.ai, where it can use your Google Drive connector. In this copy, use Export/Import above.</div></div></div>
+  </div>`}
+  <p class="sub-sm" style="margin:14px 2px">Your data stays in this browser — nothing is sent anywhere except backups you explicitly save to your own Google Drive. Export a backup before switching devices or clearing browser data.</p>
+  <input type="file" id="importFile" accept="application/json" hidden>`;
+}
+
+/* ============ calendar ============ */
+let calMonth = null;    /* {y,m} shown month; null = current */
+let calSelected = null; /* "y-m-d" key of tapped day; null = default */
+const FMON = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+function calKey(d){ return d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate(); }
+
+/* Deposit occurrences inside an arbitrary date range (for any displayed month).
+   Past payroll occurrences are treated as received (they auto-roll). */
+function depositOccurrencesInRange(dep, first, last){
+  const t = today(), occ = [];
+  if(dep.type==="oneoff"){
+    const d = parseISO(dep.date);
+    if(d && d>=first && d<=last) occ.push({date:d, awaiting:d<t, received:false});
+    return occ;
+  }
+  if(dep.cadence==="weekly" || dep.cadence==="biweekly"){
+    const step = dep.cadence==="weekly" ? 7 : 14;
+    let d = parseISO(dep.anchor);
+    if(!d || d>last) return occ; /* no occurrences before the stored anchor */
+    while(d < first) d = addDays(d, step);
+    while(d <= last){ occ.push({date:d, awaiting:false, received:d<t}); d = addDays(d, step); }
+  }else{
+    const days = dep.cadence==="monthly" ? [dep.day1] : [dep.day1, dep.day2];
+    for(const day of days){
+      const d = clampDate(first.getFullYear(), first.getMonth(), day);
+      if(d>=first && d<=last) occ.push({date:d, awaiting:false, received:d<t});
+    }
+    occ.sort((a,b)=>a.date-b.date);
+  }
+  return occ;
+}
+
+/* Every bill/deposit instance in the displayed month. */
+function monthEvents(y, m){
+  const t = today();
+  const first = new Date(y, m, 1), last = new Date(y, m+1, 0);
+  const evts = [];
+  state.bills.forEach(b=>{
+    const d = clampDate(y, m, b.dueDay);
+    const key = cycleKey(d);
+    if(scheduledForCycle(b.id, key)) return; /* shown as a scheduled payment instead */
+    const paid = (b.lastPaidCycle && b.lastPaidCycle >= key) || (b.autopay && d < t);
+    const overdue = !paid && !b.autopay && d < t;
+    const actionable = !b.autopay && !paid && nextDue(b).key === key;
+    evts.push({date:d, kind:"bill", paid, overdue, actionable, bill:b});
+  });
+  state.deposits.forEach(dep=>{
+    depositOccurrencesInRange(dep, first, last).forEach(o=>{
+      evts.push({date:o.date, kind:"dep", received:o.received, awaiting:o.awaiting, dep});
+    });
+  });
+  state.scheduled.forEach(s=>{
+    const d = parseISO(s.date);
+    if(d && d.getFullYear()===y && d.getMonth()===m) evts.push({date:d, kind:"sched", sch:s});
+  });
+  return evts;
+}
+
+function calMarker(e){
+  if(e.kind==="dep") return "dep";
+  if(e.kind==="sched") return "sched";
+  if(e.overdue) return "late";
+  if(e.paid || e.bill.autopay) return "auto";
+  return "due";
+}
+const CAL_PRIORITY = {late:0, due:1, sched:2, dep:3, auto:4};
+
+
+/* Month grid block, embedded at the top of Home. Tapping a day scrolls
+   the timeline below to that date. */
+function calendarHTML(){
+  const t = today();
+  const y = calMonth ? calMonth.y : t.getFullYear();
+  const m = calMonth ? calMonth.m : t.getMonth();
+  const isCurMonth = y===t.getFullYear() && m===t.getMonth();
+  const evts = monthEvents(y, m);
+  const byDay = new Map();
+  evts.forEach(e=>{
+    const k = calKey(e.date);
+    if(!byDay.has(k)) byDay.set(k, []);
+    byDay.get(k).push(e);
+  });
+  if(calSelected===null && isCurMonth) calSelected = calKey(t);
+
+  const dim = new Date(y, m+1, 0).getDate();
+  const lead = new Date(y, m, 1).getDay();
+  let cells = DOW.map(d=>`<div class="cal-dow">${d.slice(0,2)}</div>`).join("");
+  for(let i=0;i<lead;i++) cells += `<div class="cal-cell" aria-hidden="true"></div>`;
+  for(let day=1; day<=dim; day++){
+    const d = new Date(y, m, day), k = calKey(d);
+    const list = byDay.get(k)||[];
+    const dots = list.map(calMarker).sort((a,b)=>CAL_PRIORITY[a]-CAL_PRIORITY[b]).slice(0,3);
+    const isToday = isCurMonth && day===t.getDate();
+    cells += `<div class="cal-cell ${list.length?'evented':''} ${isToday?'today':''} ${calSelected===k?'selected':''}"
+      ${list.length? `data-calday="${k}" role="button" tabindex="0" aria-label="${MON[m]} ${day}: ${list.length} item${list.length===1?'':'s'}"` : ``}>
+      <span class="n">${day}</span>
+      ${dots.length? `<span class="cal-dots">${dots.map(c=>`<i class="${c}"></i>`).join("")}</span>` : ``}
+    </div>`;
+  }
+
+  return `<div class="cal-head">
+      <span class="cal-title">${FMON[m]} ${y}</span>
+      ${!isCurMonth ? `<button class="cal-today-btn" id="calToday">Today</button>` : ``}
+      <button class="cal-nav" id="calPrev" aria-label="Previous month"><svg viewBox="0 0 24 24"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></button>
+      <button class="cal-nav" id="calNext" aria-label="Next month"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></button>
+    </div>
+    <div class="cal-grid">${cells}</div>
+    <div class="cal-legend">
+      <span><i class="late"></i>Overdue</span><span><i class="due"></i>Manual pay</span>
+      <span><i class="auto"></i>Autopay / paid</span><span><i class="sched"></i>Scheduled</span><span><i class="dep"></i>Deposit</span>
+    </div>`;
+}
+
+/* Compact the floating calendar while the list is scrolled or focused. */
+let railFocused = false;
+function updateCalCompact(){
+  const el = document.getElementById("calSticky");
+  if(!el) return;
+  el.classList.toggle("compact", window.scrollY > 30 || railFocused);
+}
+window.addEventListener("scroll", updateCalCompact, {passive:true});
+
+/* Select a calendar day: scroll the Home timeline to that date's group. */
+function selectCalDay(k){
+  calSelected = k;
+  render();
+  const el = document.getElementById("day-"+k);
+  if(el){
+    /* the calendar will be compact once scrolled — measure that height
+       (transitions suppressed) so the day lands below it */
+    const sticky = document.getElementById("calSticky");
+    let h = 10;
+    if(sticky){
+      sticky.classList.add("measuring","compact");
+      void sticky.offsetHeight;
+      h = sticky.offsetHeight + 10;
+      sticky.classList.remove("measuring");
+    }
+    el.style.scrollMarginTop = h+"px";
+    el.scrollIntoView({behavior:"smooth", block:"start"});
+    el.classList.add("flash");
+    setTimeout(()=>el.classList.remove("flash"), 1600);
+  }else{
+    const p = k.split("-").map(Number);
+    const d = new Date(p[0], p[1], p[2]);
+    toast(d < today() ? "That date has passed — nothing left to act on."
+                      : "Beyond the 30-day timeline — it'll appear there as the date gets closer.");
+  }
+}
+
+function calNav(dir){
+  const t = today();
+  const y = calMonth ? calMonth.y : t.getFullYear();
+  const m = calMonth ? calMonth.m : t.getMonth();
+  const d = new Date(y, m+dir, 1);
+  calMonth = {y:d.getFullYear(), m:d.getMonth()};
+  if(calMonth.y===t.getFullYear() && calMonth.m===t.getMonth()) calMonth = null;
+  calSelected = null;
+  render();
+}
+
+/* ============ toast & undo ============ */
+let toastTimer = null, lastUndo = null;
+function toast(msg, undoFn){
+  const el = $("#toast");
+  el.innerHTML = `<span>${msg}</span>` + (undoFn ? `<button id="undoBtn">Undo</button>` : "");
+  el.classList.add("show");
+  lastUndo = undoFn || null;
+  if(undoFn) $("#undoBtn").onclick = () => { undoFn(); hideToast(); render(); };
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 6000);
+}
+function hideToast(){ $("#toast").classList.remove("show"); lastUndo = null; }
+
+/* ============ bill balance dialog (set amount due / post next statement) ============ */
+const balDlg = $("#balDialog");
+let balBillId = null, balMode = "set";
+function applyBalMode(){
+  const b = state.bills.find(x=>x.id===balBillId); if(!b) return;
+  const due = nextDue(b);
+  $$("#balMode button").forEach(btn=>btn.classList.toggle("on", btn.dataset.v===balMode));
+  if(balMode==="set"){
+    $("#balAmtLabel").textContent = "Amount due ($)";
+    $("#balAmt").value = b.amount ? b.amount.toFixed(2) : "";
+    $("#balAmt").placeholder = "0.00";
+    $("#balHelp").textContent = `The current statement, due ${fmtDate(due.date)}.`;
+    $("#balSave").textContent = "Save amount";
+  }else{
+    $("#balAmtLabel").textContent = "Post to next statement ($)";
+    $("#balAmt").value = "";
+    $("#balAmt").placeholder = "e.g. 120.00 or -20";
+    $("#balHelp").textContent = (b.pending > 0
+      ? `Pending so far: ${money(b.pending)} — held out of the current due, folds in after ${fmtDate(due.date)} passes. Negative corrects.`
+      : `Held out of the current amount due; folds in automatically after ${fmtDate(due.date)} passes.`);
+    $("#balSave").textContent = "Post charge";
+  }
+}
+function openBalDialog(id){
+  const b = state.bills.find(x=>x.id===id); if(!b) return;
+  balBillId = id; balMode = "set";
+  $("#balDlgTitle").textContent = `Balance — ${b.name}`;
+  $("#balInfo").innerHTML = `Due ${fmtDate(nextDue(b).date)} · ${money(b.amount)} statement` +
+    (b.pending > 0 ? ` · <b>${money(b.pending)}</b> pending next statement` : ``);
+  applyBalMode();
+  balDlg.showModal();
+  $("#balAmt").focus();
+}
+$("#balMode").addEventListener("click", e=>{
+  const btn = e.target.closest("button[data-v]"); if(!btn) return;
+  balMode = btn.dataset.v; applyBalMode(); $("#balAmt").focus();
+});
+$("#balForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const b = state.bills.find(x=>x.id===balBillId); if(!b) return;
+  const amt = parseFloat($("#balAmt").value) || 0;
+  if(balMode==="set"){
+    b.amount = Math.max(0, Math.round(amt*100)/100);
+    toast(`${esc(b.name)} — amount due set to ${money(b.amount)}`);
+  }else{
+    if(!amt){ balDlg.close(); return; }
+    b.pending = Math.max(0, Math.round(((b.pending||0) + amt)*100)/100);
+    toast(`${money(amt)} posted to ${esc(b.name)}'s next statement — now ${money(b.pending)} pending`);
+  }
+  save(); balDlg.close(); render();
+});
+
+/* ============ payment dialog (Mark paid) ============ */
+const payDlg = $("#payDialog");
+let payingBillId = null, payingDue = null, payDate = null, payCalYM = null;
+function markPaid(id){
+  const b = state.bills.find(x=>x.id===id); if(!b) return;
+  payingBillId = id;
+  payingDue = nextDue(b);
+  payDate = toISO(today());
+  payCalYM = null;
+  $("#payBillInfo").innerHTML = `<b>${esc(b.name)}</b> — ${money(b.amount)} statement, ${payingDue.overdue? "was due" : "due"} ${fmtDate(payingDue.date)}.`;
+  $("#pAmount").value = b.amount ? b.amount.toFixed(2) : "";
+  const sel = $("#pAccount");
+  sel.innerHTML = state.accounts.map(a=>`<option value="${a.id}">${esc(a.name)} — ${money(a.balance)}</option>`).join("")
+                  || `<option value="">No account</option>`;
+  if(acctById(b.accountId)) sel.value = b.accountId;
+  $("#payHint").hidden = state.settings.deductOnPaid;
+  renderPayCal();
+  payDlg.showModal();
+  $("#pAmount").focus();
+}
+
+/* In-sheet calendar: highlights today, the due date, and the pay window between them. */
+function renderPayCal(){
+  const t = today();
+  const selD = parseISO(payDate) || t;
+  const ym = payCalYM || {y:selD.getFullYear(), m:selD.getMonth()};
+  const due = payingDue ? payingDue.date : null;
+  const dueISO = due ? toISO(due) : null;
+  const dim = new Date(ym.y, ym.m+1, 0).getDate();
+  const lead = new Date(ym.y, ym.m, 1).getDay();
+  let cells = DOW.map(d=>`<div class="mc-dow">${d.slice(0,2)}</div>`).join("");
+  for(let i=0;i<lead;i++) cells += `<div></div>`;
+  for(let day=1; day<=dim; day++){
+    const d = new Date(ym.y, ym.m, day), iso = toISO(d);
+    const cls = ["mc-cell"];
+    if(d < t) cls.push("past");
+    if(due && d >= t && d <= due) cls.push("range");
+    if(iso===dueISO) cls.push("due", due < t ? "late" : "");
+    if(iso===toISO(t)) cls.push("today-c");
+    if(iso===payDate) cls.push("sel");
+    cells += `<button type="button" class="${cls.join(" ")}" data-paydate="${iso}" aria-label="${MON[ym.m]} ${day}${iso===dueISO?" — due date":""}">${day}</button>`;
+  }
+  $("#payCal").innerHTML = `
+    <div class="mc-head">
+      <span class="mc-title">${FMON[ym.m]} ${ym.y}</span>
+      <button type="button" class="mc-nav" id="pcPrev" aria-label="Previous month"><svg viewBox="0 0 24 24"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></button>
+      <button type="button" class="mc-nav" id="pcNext" aria-label="Next month"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></button>
+    </div>
+    <div class="mc-grid">${cells}</div>
+    <div class="mc-legend">
+      <span><i class="k" style="box-shadow:inset 0 0 0 1.7px var(--${due && due<t?'danger':'warn'})"></i>Due date</span>
+      ${due && due>=t ? `<span><i class="k" style="background:var(--accent-tint)"></i>Today → due</span>` : ``}
+      <span><i class="k" style="background:var(--accent)"></i>Selected</span>
+    </div>`;
+  /* quick picks */
+  const chips = [{label:"Today", iso:toISO(t)}];
+  if(due && due > t){
+    const before = addDays(due, -1);
+    if(before > t) chips.push({label:"Day before due", iso:toISO(before)});
+    chips.push({label:"On due date", iso:dueISO});
+  }
+  $("#payQuick").innerHTML = chips.map(c=>
+    `<button type="button" class="chipbtn ${payDate===c.iso?'on':''}" data-paydate="${c.iso}">${c.label}</button>`).join("");
+  /* caption + submit mode */
+  const n = daysBetween(t, selD);
+  $("#payDateLabel").textContent =
+    n > 0 ? `Held, then paid automatically on ${fmtDate(selD)} — in ${n} day${n===1?"":"s"}.`
+    : n === 0 ? "Recorded as paid today."
+    : `Recorded as already paid on ${fmtDate(selD)}.`;
+  $("#paySubmit").textContent = n > 0 ? "Schedule payment" : "Record payment";
+  $("#payFutureHint").hidden = true; /* the caption above covers it */
+}
+payDlg.addEventListener("click", e=>{
+  const pd = e.target.closest("[data-paydate]");
+  if(pd){ payDate = pd.dataset.paydate; payCalYM = null; renderPayCal(); return; }
+  const nav = e.target.closest("#pcPrev, #pcNext");
+  if(nav){
+    const selD = parseISO(payDate) || today();
+    const cur = payCalYM || {y:selD.getFullYear(), m:selD.getMonth()};
+    const d = new Date(cur.y, cur.m + (nav.id==="pcNext"?1:-1), 1);
+    payCalYM = {y:d.getFullYear(), m:d.getMonth()};
+    renderPayCal();
+  }
+});
+$("#payForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const b = state.bills.find(x=>x.id===payingBillId); if(!b) return;
+  const due = nextDue(b);
+  const amount = Math.max(0, parseFloat($("#pAmount").value)||0);
+  const dateISO = payDate || toISO(today());
+  const acct = acctById($("#pAccount").value);
+  const dateD = parseISO(dateISO);
+
+  /* Scheduled (future) payment: track it, hold the balance and the bill. */
+  if(dateD && dateD > today()){
+    const sch = {id:uid(), billId:b.id, name:b.name, amount, date:dateISO, accountId:acct? acct.id : null, cycle:due.key};
+    state.scheduled.push(sch);
+    save(); payDlg.close();
+    toast(`Payment scheduled for ${fmtDate(dateD)} — ${esc(b.name)}, ${money(amount)}. Balance holds until then.`, ()=>{
+      state.scheduled = state.scheduled.filter(s=>s.id!==sch.id); save();
+    });
+    animateOut(document.querySelector(`#view [data-bill="${b.id}"]`), ()=>{ render(); checkNotifications(); });
+    return;
+  }
+
+  /* Immediate payment. */
+  const prevCycle = b.lastPaidCycle || null;
+  b.lastPaidCycle = due.key;
+  let deducted = 0;
+  if(state.settings.deductOnPaid && acct){ acct.balance = Math.round((acct.balance - amount)*100)/100; deducted = amount; }
+  const rec = {id:uid(), billId:b.id, name:b.name, amount, date:dateISO, accountId:acct? acct.id : null, cycle:due.key};
+  state.payments.push(rec);
+  if(state.payments.length > 200) state.payments = state.payments.slice(-200);
+  save(); payDlg.close();
+  toast(`${esc(b.name)} paid — ${money(amount)}` + (deducted && acct ? ` from ${esc(acct.name)}` : ""), ()=>{
+    b.lastPaidCycle = prevCycle;
+    if(deducted && acct) acct.balance = Math.round((acct.balance + deducted)*100)/100;
+    state.payments = state.payments.filter(p=>p.id!==rec.id);
+    save();
+  });
+  animateOut(document.querySelector(`#view [data-bill="${b.id}"]`), ()=>{ render(); checkNotifications(); });
+});
+
+/* Cancel a held payment → the bill's cycle becomes due again. */
+function cancelSched(id){
+  const i = state.scheduled.findIndex(s=>s.id===id); if(i<0) return;
+  const s = state.scheduled[i];
+  state.scheduled.splice(i,1); save();
+  toast(`Scheduled payment for ${esc(s.name)} canceled`, ()=>{ state.scheduled.push(s); save(); });
+  animateOut(document.querySelector(`#view [data-sched="${s.id}"]`), ()=>{ render(); checkNotifications(); });
+}
+/* Post a held payment right now instead of waiting for its date. */
+function paySchedNow(id){
+  const s = state.scheduled.find(x=>x.id===id); if(!s) return;
+  const b = state.bills.find(x=>x.id===s.billId);
+  const acct = acctById(s.accountId);
+  const prevCycle = b ? (b.lastPaidCycle||null) : null;
+  if(b && (!b.lastPaidCycle || b.lastPaidCycle < s.cycle)) b.lastPaidCycle = s.cycle;
+  let deducted = 0;
+  if(state.settings.deductOnPaid && acct){ acct.balance = Math.round((acct.balance - (s.amount||0))*100)/100; deducted = s.amount||0; }
+  state.scheduled = state.scheduled.filter(x=>x.id!==s.id);
+  const rec = {id:uid(), billId:s.billId, name:s.name, amount:s.amount, date:toISO(today()), accountId:s.accountId, cycle:s.cycle};
+  state.payments.push(rec);
+  save();
+  toast(`${esc(s.name)} paid — ${money(s.amount)}` + (deducted && acct ? ` from ${esc(acct.name)}` : ""), ()=>{
+    if(b) b.lastPaidCycle = prevCycle;
+    if(deducted && acct) acct.balance = Math.round((acct.balance + deducted)*100)/100;
+    state.payments = state.payments.filter(p=>p.id!==rec.id);
+    state.scheduled.push(s); save();
+  });
+  animateOut(document.querySelector(`#view [data-sched="${s.id}"]`), ()=>{ render(); checkNotifications(); });
+}
+
+/* ============ in-app confirm (window.confirm is blocked in sandboxed frames) ============ */
+const confirmDlg = $("#confirmDialog");
+let confirmResolve = null;
+function askConfirm(title, msg, yesLabel, danger){
+  return new Promise(res=>{
+    confirmResolve = res;
+    $("#confirmTitle").textContent = title;
+    $("#confirmMsg").textContent = msg;
+    const yes = $("#confirmYes");
+    yes.textContent = yesLabel || "Confirm";
+    yes.className = "btn" + (danger ? " danger" : "");
+    confirmDlg.showModal();
+  });
+}
+function settleConfirm(v){ if(confirmResolve){ const r = confirmResolve; confirmResolve = null; r(v); } }
+$("#confirmYes").addEventListener("click", ()=>{ confirmDlg.close(); settleConfirm(true); });
+$("#confirmNo").addEventListener("click", ()=>{ confirmDlg.close(); settleConfirm(false); });
+confirmDlg.addEventListener("close", ()=>settleConfirm(false));
+
+/* ============ bill dialog ============ */
+const billDlg = $("#billDialog");
+let editingBill = null, dlgKind = "card", dlgAutopay = false, dlgApMode = "full";
+let dlgIcon = "card", dlgIconTouched = false;
+function renderIconGrid(){
+  $("#bIconGrid").innerHTML = Object.keys(ICONS).map(id=>
+    `<button type="button" class="ico-opt ${id===dlgIcon?'on':''}" data-ico="${id}" title="${ICONS[id].label}" aria-label="${ICONS[id].label}" aria-pressed="${id===dlgIcon}">${iconTile(id, "ico-tile")}</button>`
+  ).join("");
+}
+
+function openBillDialog(id){
+  if(state.accounts.length===0){
+    toast("Add a checking account first — bills need an account to pay from.");
+    switchTab("accounts");
+    return;
+  }
+  editingBill = id ? state.bills.find(b=>b.id===id) : null;
+  $("#billDlgTitle").textContent = editingBill ? "Edit bill" : "Add a bill";
+  $("#bSave").textContent = editingBill ? "Save changes" : "Add bill";
+  $("#bDelete").hidden = !editingBill;
+  $("#bName").value = editingBill ? editingBill.name : "";
+  $("#bAmount").value = editingBill ? editingBill.amount : "";
+  $("#bDueDay").value = editingBill ? editingBill.dueDay : "";
+  dlgKind = editingBill ? editingBill.kind : "card";
+  dlgAutopay = editingBill ? !!editingBill.autopay : false;
+  dlgApMode = editingBill && editingBill.autopayMode==="fixed" ? "fixed" : "full";
+  dlgIcon = editingBill ? billIcon(editingBill) : suggestIcon("", dlgKind);
+  dlgIconTouched = !!editingBill; /* editing: keep the stored icon unless changed */
+  renderIconGrid();
+  $("#bApAmount").value = editingBill && editingBill.autopayAmount ? editingBill.autopayAmount : "";
+  $$("#bKind button").forEach(btn=>btn.classList.toggle("on", btn.dataset.v===dlgKind));
+  setToggle($("#bAutopay"), dlgAutopay);
+  updateApMode();
+  const sel = $("#bAccount");
+  sel.innerHTML = state.accounts.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join("");
+  if(editingBill && acctById(editingBill.accountId)) sel.value = editingBill.accountId;
+  billDlg.showModal();
+}
+function setToggle(el, on){ el.classList.toggle("on", on); el.setAttribute("aria-checked", on); }
+
+$("#bKind").addEventListener("click", e=>{
+  const btn = e.target.closest("button[data-v]"); if(!btn) return;
+  dlgKind = btn.dataset.v;
+  $$("#bKind button").forEach(b=>b.classList.toggle("on", b===btn));
+  if(!dlgIconTouched){ dlgIcon = suggestIcon($("#bName").value, dlgKind); renderIconGrid(); }
+});
+$("#bIconGrid").addEventListener("click", e=>{
+  const btn = e.target.closest("[data-ico]"); if(!btn) return;
+  dlgIcon = btn.dataset.ico; dlgIconTouched = true; renderIconGrid();
+});
+$("#bName").addEventListener("input", ()=>{
+  if(!dlgIconTouched){ dlgIcon = suggestIcon($("#bName").value, dlgKind); renderIconGrid(); }
+});
+function updateApMode(){
+  $("#bAutopayOpts").hidden = !dlgAutopay;
+  $$("#bApMode button").forEach(b=>b.classList.toggle("on", b.dataset.v===dlgApMode));
+  $("#bApAmountField").hidden = !(dlgAutopay && dlgApMode==="fixed");
+}
+$("#bAutopay").addEventListener("click", ()=>{ dlgAutopay = !dlgAutopay; setToggle($("#bAutopay"), dlgAutopay); updateApMode(); });
+$("#bApMode").addEventListener("click", e=>{
+  const btn = e.target.closest("button[data-v]"); if(!btn) return;
+  dlgApMode = btn.dataset.v; updateApMode();
+  if(dlgApMode==="fixed") $("#bApAmount").focus();
+});
+
+$("#billForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const data = {
+    name: $("#bName").value.trim(),
+    kind: dlgKind,
+    amount: Math.max(0, parseFloat($("#bAmount").value)||0),
+    dueDay: Math.min(31, Math.max(1, parseInt($("#bDueDay").value,10)||1)),
+    accountId: $("#bAccount").value,
+    icon: dlgIcon,
+    autopay: dlgAutopay,
+    autopayMode: dlgAutopay ? dlgApMode : "full",
+    autopayAmount: (dlgAutopay && dlgApMode==="fixed") ? Math.max(0, parseFloat($("#bApAmount").value)||0) : 0,
+  };
+  if(!data.name) return;
+  if(editingBill){
+    const dueDayChanged = editingBill.dueDay !== data.dueDay;
+    Object.assign(editingBill, data);
+    if(dueDayChanged){
+      const base = initialPaidCycle(data.dueDay);
+      if(!editingBill.lastPaidCycle || editingBill.lastPaidCycle < base) editingBill.lastPaidCycle = base;
+      editingBill.lastRolledCycle = lastPassedDueKey(editingBill); /* re-anchor so the new due day doesn't fold early */
+    }
+    toast(`${esc(data.name)} updated`);
+  }
+  else{ state.bills.push({id:uid(), lastPaidCycle:initialPaidCycle(data.dueDay), pending:0, lastRolledCycle:null, ...data}); toast(`${esc(data.name)} added`); }
+  save(); billDlg.close(); render(); checkNotifications();
+});
+$("#bDelete").addEventListener("click", ()=>{
+  if(!editingBill) return;
+  const b = editingBill;
+  state.bills = state.bills.filter(x=>x.id!==b.id);
+  save(); billDlg.close();
+  toast(`${esc(b.name)} deleted`, ()=>{ state.bills.push(b); save(); });
+  animateOut(document.querySelector(`#view [data-bill="${b.id}"]`), render);
+});
+
+/* ============ deposit dialog & actions ============ */
+const depDlg = $("#depDialog");
+let editingDep = null, dlgDepType = "oneoff";
+
+function toISO(d){ const p=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
+function updateDepFields(){
+  const payroll = dlgDepType==="payroll";
+  const cad = $("#dCadence").value;
+  $("#dDateField").hidden = payroll;
+  $("#dCadenceField").hidden = !payroll;
+  $("#dAnchorField").hidden = !(payroll && (cad==="weekly"||cad==="biweekly"));
+  $("#dSemiFields").hidden = !(payroll && cad==="semimonthly");
+  $("#dMonthlyField").hidden = !(payroll && cad==="monthly");
+}
+function openDepDialog(id){
+  if(state.accounts.length===0){
+    toast("Add a checking account first — deposits need an account to land in.");
+    switchTab("accounts");
+    return;
+  }
+  editingDep = id ? state.deposits.find(d=>d.id===id) : null;
+  $("#depDlgTitle").textContent = editingDep ? "Edit deposit" : "Add an expected deposit";
+  $("#dSave").textContent = editingDep ? "Save changes" : "Add deposit";
+  $("#dDelete").hidden = !editingDep;
+  $("#dName").value = editingDep ? editingDep.name : "";
+  $("#dAmount").value = editingDep ? editingDep.amount : "";
+  dlgDepType = editingDep ? editingDep.type : "oneoff";
+  $$("#dType button").forEach(b=>b.classList.toggle("on", b.dataset.v===dlgDepType));
+  $("#dDate").value = editingDep && editingDep.date ? editingDep.date : toISO(today());
+  $("#dCadence").value = (editingDep && editingDep.cadence) || "biweekly";
+  $("#dAnchor").value = (editingDep && editingDep.anchor) || toISO(today());
+  $("#dDay1").value = (editingDep && editingDep.day1) || 15;
+  $("#dDay2").value = (editingDep && editingDep.day2) || 31;
+  $("#dDayM").value = (editingDep && editingDep.cadence==="monthly" && editingDep.day1) || "";
+  const sel = $("#dAccount");
+  sel.innerHTML = state.accounts.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join("");
+  if(editingDep && acctById(editingDep.accountId)) sel.value = editingDep.accountId;
+  updateDepFields();
+  depDlg.showModal();
+}
+$("#dType").addEventListener("click", e=>{
+  const btn = e.target.closest("button[data-v]"); if(!btn) return;
+  dlgDepType = btn.dataset.v;
+  $$("#dType button").forEach(b=>b.classList.toggle("on", b===btn));
+  updateDepFields();
+});
+$("#dCadence").addEventListener("change", updateDepFields);
+$("#depForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const clampDay = v => Math.min(31, Math.max(1, parseInt(v,10)||1));
+  const d = {
+    name: $("#dName").value.trim(),
+    amount: Math.max(0, parseFloat($("#dAmount").value)||0),
+    accountId: $("#dAccount").value,
+    type: dlgDepType,
+  };
+  if(!d.name) return;
+  if(d.type==="oneoff"){
+    d.date = $("#dDate").value || toISO(today());
+  }else{
+    d.cadence = $("#dCadence").value;
+    if(d.cadence==="weekly" || d.cadence==="biweekly") d.anchor = $("#dAnchor").value || toISO(today());
+    else if(d.cadence==="semimonthly"){ d.day1 = clampDay($("#dDay1").value); d.day2 = clampDay($("#dDay2").value); }
+    else d.day1 = clampDay($("#dDayM").value);
+  }
+  if(editingDep){
+    /* replace recurrence fields wholesale so stale ones don't linger */
+    ["date","cadence","anchor","day1","day2"].forEach(k=>delete editingDep[k]);
+    Object.assign(editingDep, d);
+    toast(`${esc(d.name)} updated`);
+  }else{
+    state.deposits.push({id:uid(), ...d});
+    toast(`${esc(d.name)} added`);
+  }
+  save(); depDlg.close(); render();
+});
+$("#dDelete").addEventListener("click", ()=>{
+  if(!editingDep) return;
+  const d = editingDep;
+  state.deposits = state.deposits.filter(x=>x.id!==d.id);
+  save(); depDlg.close();
+  toast(`${esc(d.name)} deleted`, ()=>{ state.deposits.push(d); save(); });
+  animateOut(document.querySelector(`#view [data-dep="${d.id}"]`), render);
+});
+
+function markReceived(id){
+  const dep = state.deposits.find(x=>x.id===id); if(!dep || dep.type!=="oneoff") return;
+  const acct = acctById(dep.accountId);
+  let added = 0;
+  if(state.settings.deductOnPaid && acct){ acct.balance += (dep.amount||0); added = dep.amount||0; }
+  state.deposits = state.deposits.filter(x=>x.id!==id);
+  save();
+  toast(`${esc(dep.name)} received` + (added ? ` · ${money(added)} added to ${esc(acct.name)}` : ""), ()=>{
+    state.deposits.push(dep);
+    if(added && acct) acct.balance -= added;
+    save();
+  });
+  animateOut(document.querySelector(`#view [data-dep="${dep.id}"]`), render);
+}
+
+/* ============ account dialog ============ */
+const acctDlg = $("#acctDialog");
+let editingAcct = null, acctMode = "set";
+function applyAcctMode(){
+  const post = acctMode==="post";
+  $$("#aMode button").forEach(b=>b.classList.toggle("on", b.dataset.v===acctMode));
+  $("#aBalanceLabel").textContent = post ? "Amount to post ($)" : "Current balance ($)";
+  $("#aBalanceHelp").hidden = !post;
+  $("#aBalance").value = post ? "" : (editingAcct ? editingAcct.balance : "");
+  $("#aBalance").placeholder = post ? "e.g. 500 or -25" : "0.00";
+  updateAcctPreview();
+}
+function updateAcctPreview(){
+  const el = $("#aPreview");
+  if(acctMode!=="post" || !editingAcct){ el.hidden = true; return; }
+  const amt = parseFloat($("#aBalance").value);
+  el.hidden = isNaN(amt);
+  if(!isNaN(amt)) el.textContent = `New balance: ${money(Math.round((editingAcct.balance + amt)*100)/100)}`;
+}
+function openAcctDialog(id){
+  editingAcct = id ? acctById(id) : null;
+  acctMode = "set";
+  $("#acctDlgTitle").textContent = editingAcct ? "Update account" : "Add a checking account";
+  $("#aName").value = editingAcct ? editingAcct.name : "";
+  $("#aModeField").hidden = !editingAcct;
+  $("#aDelete").hidden = !editingAcct;
+  applyAcctMode();
+  acctDlg.showModal();
+}
+$("#aMode").addEventListener("click", e=>{
+  const btn = e.target.closest("button[data-v]"); if(!btn) return;
+  acctMode = btn.dataset.v;
+  applyAcctMode();
+  $("#aBalance").focus();
+});
+$("#aBalance").addEventListener("input", updateAcctPreview);
+$("#acctForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const name = $("#aName").value.trim();
+  const amt = parseFloat($("#aBalance").value)||0;
+  if(!name) return;
+  if(editingAcct){
+    editingAcct.name = name;
+    if(acctMode==="post"){
+      const prev = editingAcct.balance;
+      editingAcct.balance = Math.round((prev + amt)*100)/100;
+      const a = editingAcct;
+      toast(`${money(amt)} posted to ${esc(name)} — balance ${money(a.balance)}`, ()=>{ a.balance = prev; save(); });
+    }else{
+      editingAcct.balance = amt;
+      toast(`${esc(name)} updated`);
+    }
+  }
+  else{ state.accounts.push({id:uid(), name, balance:amt}); toast(`${esc(name)} added`); }
+  save(); acctDlg.close(); render();
+});
+$("#aDelete").addEventListener("click", async ()=>{
+  if(!editingAcct) return;
+  const linked = state.bills.filter(b=>b.accountId===editingAcct.id).length;
+  if(linked){
+    const ok = await askConfirm("Delete account?",
+      `${editingAcct.name} has ${linked} linked bill${linked===1?"":"s"}. They'll keep their data but show “No account”.`, "Delete", true);
+    if(!ok) return;
+  }
+  const a = editingAcct;
+  state.accounts = state.accounts.filter(x=>x.id!==a.id);
+  save(); acctDlg.close();
+  const el = document.querySelector(`#view [data-acct="${a.id}"]`);
+  toast(`${esc(a.name)} deleted`, ()=>{ state.accounts.push(a); save(); });
+  animateOut(el, render);
+});
+
+const driveDlg = $("#driveDialog");
+$$("dialog [data-close]").forEach(b=>b.addEventListener("click", e=>e.target.closest("dialog").close()));
+[billDlg, acctDlg, driveDlg, depDlg, payDlg, confirmDlg, balDlg].forEach(d=>d.addEventListener("click", e=>{ if(e.target===d) d.close(); }));
+$("#driveList").addEventListener("click", e=>{
+  const b = e.target.closest("[data-restore]");
+  if(b) driveRestore(b.dataset.restore, b.dataset.title);
+});
+
+/* ============ account transfer (drag or button) ============ */
+const xferDlg = $("#xferDialog");
+let xferFromId = null;
+xferDlg.addEventListener("click", e=>{ if(e.target===xferDlg) xferDlg.close(); });
+
+function openTransferDialog(fromId, targetId){
+  const from = acctById(fromId); if(!from) return;
+  const others = state.accounts.filter(a=>a.id!==fromId);
+  if(others.length===0) return;
+  xferFromId = fromId;
+  $("#xFromLabel").innerHTML = `<span>${esc(from.name)}</span><span class="amt">${money(from.balance)}</span>`;
+  const sel = $("#xTo");
+  sel.innerHTML = others.map(a=>`<option value="${a.id}">${esc(a.name)} — ${money(a.balance)}</option>`).join("");
+  if(targetId && others.some(a=>a.id===targetId)) sel.value = targetId;
+  $("#xAmount").value = "";
+  xferDlg.showModal();
+  $("#xAmount").focus();
+}
+$("#xferForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const from = acctById(xferFromId), to = acctById($("#xTo").value);
+  const amt = Math.round((parseFloat($("#xAmount").value)||0)*100)/100;
+  if(!from || !to || from===to || !(amt>0)) return;
+  from.balance -= amt; to.balance += amt;
+  save(); xferDlg.close(); render();
+  toast(`Moved ${money(amt)} from ${esc(from.name)} to ${esc(to.name)}`, ()=>{
+    from.balance += amt; to.balance -= amt; save();
+  });
+});
+
+/* Pointer-event drag: works with touch, unlike HTML5 drag-and-drop.
+   The drag is drawn as an arrow from the source card to the pointer. */
+let drag = null;
+const SVG_NS = "http://www.w3.org/2000/svg";
+function makeDragOverlay(){
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("class", "drag-arrow");
+  const path = document.createElementNS(SVG_NS, "path");
+  const head = document.createElementNS(SVG_NS, "polygon");
+  svg.appendChild(path); svg.appendChild(head);
+  document.body.appendChild(svg);
+  return {svg, path, head};
+}
+function drawArrow(o, x1, y1, x2, y2){
+  const dx = x2-x1, dy = y2-y1, len = Math.hypot(dx, dy);
+  if(len < 4){ o.path.removeAttribute("d"); o.head.removeAttribute("points"); return; }
+  /* gentle bow perpendicular to the line */
+  const k = Math.min(40, len*0.18);
+  const cx = (x1+x2)/2 - dy/len*k, cy = (y1+y2)/2 + dx/len*k;
+  o.path.setAttribute("d", `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+  const ang = Math.atan2(y2-cy, x2-cx), s = 9;
+  const p = a => (x2 - s*Math.cos(ang-a)) + "," + (y2 - s*Math.sin(ang-a));
+  o.head.setAttribute("points", `${x2},${y2} ${p(.46)} ${p(-.46)}`);
+}
+$("#view").addEventListener("pointerdown", e=>{
+  const h = e.target.closest("[data-draghandle]");
+  if(!h) return;
+  const card = h.closest(".card[data-acct]");
+  if(!card) return;
+  e.preventDefault();
+  const hr = h.getBoundingClientRect();
+  const ox = hr.left + hr.width/2, oy = hr.top + hr.height/2;
+  const overlay = makeDragOverlay();
+  drawArrow(overlay, ox, oy, e.clientX, e.clientY);
+  card.classList.add("drag-src");
+  drag = {id:h.dataset.draghandle, card, overlay, ox, oy, target:null};
+  try{ h.setPointerCapture(e.pointerId); }catch(err){}
+});
+window.addEventListener("pointermove", e=>{
+  if(!drag) return;
+  drawArrow(drag.overlay, drag.ox, drag.oy, e.clientX, e.clientY);
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const over = el && el.closest ? el.closest(".card[data-acct]") : null;
+  const t = (over && over!==drag.card) ? over : null;
+  if(drag.target && drag.target!==t) drag.target.classList.remove("drop-target");
+  if(t) t.classList.add("drop-target");
+  drag.target = t;
+});
+function endDrag(commit){
+  if(!drag) return;
+  const d = drag; drag = null;
+  d.overlay.svg.remove();
+  d.card.classList.remove("drag-src");
+  if(d.target) d.target.classList.remove("drop-target");
+  if(commit && d.target) openTransferDialog(d.id, d.target.dataset.acct);
+}
+window.addEventListener("pointerup", ()=>endDrag(true));
+window.addEventListener("pointercancel", ()=>endDrag(false));
+
+/* ============ notifications ============ */
+function checkNotifications(){
+  const s = state.settings;
+  if(!s.browserNotif || !("Notification" in window) || Notification.permission!=="granted") return;
+  const lead = s.leadDays;
+  let changed = false;
+  upcoming(30).forEach(x=>{
+    if(x.bill.autopay) return;
+    if(!(x.due.overdue || x.due.days<=lead)) return;
+    const key = x.bill.id+"|"+x.due.key;
+    if(state.notified[key]) return;
+    try{
+      new Notification(x.due.overdue ? `Overdue: ${x.bill.name}` : `Bill due ${x.due.days===0?"today":"in "+x.due.days+" day"+(x.due.days===1?"":"s")}: ${x.bill.name}`,
+        { body:`${money(x.bill.amount)} from ${acctName(x.bill.accountId)} — not on autopay.`, tag:key });
+      state.notified[key] = Date.now();
+      changed = true;
+    }catch(e){}
+  });
+  /* prune notification records older than 90 days */
+  const cutoff = Date.now() - 90*86400000;
+  Object.keys(state.notified).forEach(k=>{ if(state.notified[k] < cutoff){ delete state.notified[k]; changed = true; } });
+  if(changed) save();
+}
+
+/* ============ sample data ============ */
+function seed(){
+  const t = today();
+  const day = off => { const d = new Date(t); d.setDate(d.getDate()+off); return d.getDate(); };
+  const a1 = {id:uid(), name:"Chase Checking …4821", balance:2350};
+  const a2 = {id:uid(), name:"BofA Checking …1177", balance:640};
+  state.accounts = [a1, a2];
+  const mk = (name, kind, amount, dueDay, accountId, autopay, apMode, apAmount) =>
+    ({id:uid(), name, kind, amount, dueDay, accountId, autopay,
+      autopayMode: apMode||"full", autopayAmount: apAmount||0, lastPaidCycle:initialPaidCycle(dueDay)});
+  state.bills = [
+    mk("Chase Sapphire", "card", 812.44, day(3), a1.id, true, "fixed", 250),
+    mk("Amex Blue Cash", "card", 1240.10, day(9), a2.id, false),
+    mk("Citi Double Cash", "card", 96.20, day(15), a1.id, true),
+    mk("Discover it", "card", 430.00, day(21), a2.id, false),
+    mk("PG&E Electric", "utility", 145.67, day(6), a1.id, true),
+    mk("Water & Sewer", "utility", 78.30, day(12), a1.id, false),
+    mk("Internet — Xfinity", "utility", 65.00, day(26), a2.id, true),
+  ];
+  /* one bill starts overdue (2 days ago, unpaid) to show how alerts look */
+  const od = new Date(t); od.setDate(od.getDate()-2);
+  const odCyclePrev = clampDate(od.getFullYear(), od.getMonth()-1, od.getDate());
+  state.bills.push({id:uid(), name:"City Trash Service", kind:"utility", amount:42.50,
+    dueDay:od.getDate(), accountId:a1.id, autopay:false, lastPaidCycle:cycleKey(odCyclePrev)});
+  state.deposits = [
+    {id:uid(), name:"Payroll — Acme Corp", amount:2150, accountId:a1.id, type:"payroll",
+     cadence:"biweekly", anchor:toISO(addDays(t,4))},
+    {id:uid(), name:"eBay sale payout", amount:310, accountId:a2.id, type:"oneoff", date:toISO(addDays(t,8))},
+  ];
+  state.bills.forEach(b=>{ b.pending = 0; b.lastRolledCycle = lastPassedDueKey(b); });
+  const citi = state.bills.find(b=>b.name==="Citi Double Cash");
+  if(citi) citi.pending = 58.40; /* demo: a charge waiting for the next statement */
+  /* a held payment scheduled a few days out, to show how it waits for its date */
+  const disc = state.bills.find(b=>b.name==="Discover it");
+  if(disc){
+    const due = nextDue(disc);
+    state.scheduled = [{id:uid(), billId:disc.id, name:disc.name, amount:disc.amount,
+      date:toISO(addDays(t,5)), accountId:disc.accountId, cycle:due.key}];
+  }
+  save(); render();
+  toast("Sample data loaded — erase it anytime in Settings.");
+}
+
+/* ============ export / import ============ */
+function backupFilename(){
+  const d = new Date(); const p = n => String(n).padStart(2,"0");
+  return `cashline-backup-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.json`;
+}
+function exportData(){
+  const json = JSON.stringify(state, null, 2);
+  const name = backupFilename();
+  if(window.claude && window.claude.downloads){
+    window.claude.downloads.save({filename:name, data:json})
+      .then(()=>toast("Backup saved"))
+      .catch(err=>{
+        const code = err && err.code;
+        if(code==="declined") return; /* viewer said no — their call */
+        if(code==="rate_limited") toast("A save prompt is already open — try again in a moment.");
+        else toast("Saving isn't available in this view — use Google Drive backup below.");
+      });
+    return;
+  }
+  const blob = new Blob([json], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+  toast("Backup downloaded");
+}
+
+/* ============ Google Drive backup (via claude.ai connector) ============ */
+const GD = "claude_ai_Google_Drive";
+function hasMcp(){ return !!(window.claude && window.claude.mcp); }
+let driveBusy = false;
+
+function mcpMsg(err, verb){
+  const code = err && err.code;
+  switch(code){
+    case "needs_reauth": return "Google Drive needs to be reconnected — claude.ai Settings → Connectors, then try again.";
+    case "server_not_connected": return "Google Drive isn't connected — add it in claude.ai Settings → Connectors.";
+    case "selection_required": return "More than one Google Drive is connected — choose one in the claude.ai prompt, then try again.";
+    case "not_in_manifest":
+    case "blocked_by_policy": return "This page isn't allowed to use Google Drive for your account.";
+    case "approval_required": return "Your organization requires approval for Drive access — not available here.";
+    case "server_unavailable":
+    case "upstream_error": return verb+" didn't get an answer from Google Drive — check your Drive, it may still have gone through.";
+    case "tool_error": return verb+" failed: " + ((err && err.message) || "Google Drive reported an error.");
+    default: return verb+" failed" + (err && err.message ? ": "+err.message : ".");
+  }
+}
+
+/* Response shapes from the Drive connector vary; hunt defensively. */
+function findFilesArray(v, depth){
+  depth = depth||0;
+  if(depth>4 || v==null) return null;
+  if(Array.isArray(v)){
+    if(v.length && v.every(f => f && typeof f==="object" && (f.id||f.fileId||f.file_id))) return v;
+    return null;
+  }
+  if(typeof v==="object"){
+    for(const k of ["files","results","items","data","payload"]) {
+      const hit = findFilesArray(v[k], depth+1); if(hit) return hit;
+    }
+    for(const k of Object.keys(v)){ const hit = findFilesArray(v[k], depth+1); if(hit) return hit; }
+  }
+  return null;
+}
+function b64ToText(s){
+  try{
+    const bin = atob(s.replace(/\s/g,""));
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder("utf-8").decode(bytes);
+  }catch(e){ return null; }
+}
+function looksLikeBackup(obj){ return obj && typeof obj==="object" && Array.isArray(obj.accounts) && Array.isArray(obj.bills); }
+function textToBackup(text){
+  if(typeof text!=="string") return null;
+  try{ const o = JSON.parse(text); if(looksLikeBackup(o)) return o; }catch(e){}
+  const dec = b64ToText(text);
+  if(dec){ try{ const o = JSON.parse(dec); if(looksLikeBackup(o)) return o; }catch(e){} }
+  return null;
+}
+function findBackupIn(v, depth){
+  depth = depth||0;
+  if(depth>4 || v==null) return null;
+  if(typeof v==="string") return textToBackup(v);
+  if(looksLikeBackup(v)) return v;
+  if(typeof v==="object"){
+    for(const k of Object.keys(v)){ const hit = findBackupIn(v[k], depth+1); if(hit) return hit; }
+  }
+  return null;
+}
+
+async function driveBackup(){
+  if(driveBusy) return; driveBusy = true;
+  const btn = $("#driveBackupBtn"); if(btn){ btn.textContent = "Backing up…"; btn.disabled = true; }
+  const name = backupFilename();
+  try{
+    await window.claude.mcp.callTool(GD, "create_file", {
+      title: name,
+      textContent: JSON.stringify(state, null, 2),
+      contentMimeType: "application/json",
+      disableConversionToGoogleType: true,
+    });
+    state.settings.lastDriveBackup = Date.now();
+    save();
+    toast("Backed up to Google Drive as "+name);
+  }catch(err){ toast(mcpMsg(err, "Backup")); }
+  driveBusy = false; render();
+}
+
+async function openDriveRestore(){
+  if(driveBusy) return; driveBusy = true;
+  const btn = $("#driveRestoreBtn"); if(btn){ btn.textContent = "Loading…"; btn.disabled = true; }
+  try{
+    const res = await window.claude.mcp.callTool(GD, "search_files",
+      {query:"title contains 'cashline-backup-'", pageSize:25}, {cache:false});
+    const raw = findFilesArray(res.payload) || [];
+    const files = raw.map(f => ({
+        id: f.id || f.fileId || f.file_id,
+        title: f.title || f.name || "(untitled)",
+        time: f.modifiedTime || f.createdTime || f.modified_time || f.created_time || "",
+      }))
+      .filter(f => f.id && /cashline-backup-/.test(f.title))
+      .sort((a,b) => b.title.localeCompare(a.title));
+    const list = $("#driveList");
+    if(files.length===0){
+      list.innerHTML = `<div class="empty" style="margin-top:0"><p><b>No backups found in Drive.</b></p><p>Use “Back up” first — files are named cashline-backup-….json.</p></div>`;
+    }else{
+      list.innerHTML = files.map(f =>
+        `<button class="card row" style="width:100%;text-align:left" data-restore="${esc(f.id)}" data-title="${esc(f.title)}">
+          <div class="grow"><div class="title-sm">${esc(f.title)}</div>
+          ${f.time? `<div class="sub-sm">${esc(String(f.time).replace("T"," ").slice(0,16))}</div>`:""}</div>
+        </button>`).join("");
+    }
+    $("#driveDialog").showModal();
+  }catch(err){ toast(mcpMsg(err, "Loading backups")); }
+  driveBusy = false;
+  if(activeTab==="settings") render();
+}
+
+async function driveRestore(fileId, title){
+  if(driveBusy) return;
+  const ok = await askConfirm("Restore this backup?", `Replaces all current data with “${title}”. Export a backup first if unsure.`, "Restore", true);
+  if(!ok) return;
+  driveBusy = true;
+  try{
+    const res = await window.claude.mcp.callTool(GD, "download_file_content", {fileId});
+    const backup = findBackupIn(res.payload) || findBackupIn(res.content);
+    if(!backup){ toast("That file couldn't be read as a Cashline backup — nothing was changed."); }
+    else{
+      state = normalize(backup); save();
+      $("#driveDialog").close();
+      toast("Backup restored from Google Drive");
+    }
+  }catch(err){ toast(mcpMsg(err, "Restore")); }
+  driveBusy = false; render();
+}
+
+/* ============ tab & event wiring ============ */
+function switchTab(t){ activeTab = t; render(true); window.scrollTo(0,0); }
+$$("nav.tabs button").forEach(b=>b.addEventListener("click", ()=>switchTab(b.dataset.tab)));
+$("#fab").addEventListener("click", ()=>{ activeTab==="bills" ? openBillDialog() : openAcctDialog(); });
+
+$("#view").addEventListener("click", e=>{
+  const pay = e.target.closest("[data-pay]");
+  if(pay) return markPaid(pay.dataset.pay);
+  const rec = e.target.closest("[data-received]");
+  if(rec) return markReceived(rec.dataset.received);
+  const csn = e.target.closest("[data-payschednow]");
+  if(csn) return paySchedNow(csn.dataset.payschednow);
+  const cxs = e.target.closest("[data-cancelsched]");
+  if(cxs) return cancelSched(cxs.dataset.cancelsched);
+  const editdep = e.target.closest("[data-editdep]");
+  if(editdep) return openDepDialog(editdep.dataset.editdep);
+  if(e.target.closest("#addDepBtn")) return openDepDialog();
+  const bal = e.target.closest("[data-bal]");
+  if(bal) return openBalDialog(bal.dataset.bal);
+  const edit = e.target.closest("[data-edit]");
+  if(edit) return openBillDialog(edit.dataset.edit);
+  const eacct = e.target.closest("[data-editacct]");
+  if(eacct) return openAcctDialog(eacct.dataset.editacct);
+  const xf = e.target.closest("[data-transfer]");
+  if(xf) return openTransferDialog(xf.dataset.transfer);
+  const fchip = e.target.closest("[data-icofilter]");
+  if(fchip){
+    billFilterIcon = fchip.dataset.icofilter || null;
+    render(); return;
+  }
+  if(e.target.closest("#billSearchClear") || e.target.closest("#clearFiltersBtn")){
+    billFilterText = ""; billFilterIcon = null;
+    render(); return;
+  }
+  const cd = e.target.closest("[data-calday]");
+  if(cd) return selectCalDay(cd.dataset.calday);
+  if(e.target.closest("#calPrev")) return calNav(-1);
+  if(e.target.closest("#calNext")) return calNav(1);
+  if(e.target.closest("#calToday")){ calMonth = null; calSelected = null; render(); return; }
+  const goto = e.target.closest("[data-goto]");
+  if(goto){ switchTab(goto.dataset.goto); if(goto.dataset.goto==="accounts") openAcctDialog(); if(goto.dataset.goto==="bills") openBillDialog(); return; }
+  if(e.target.closest("#seedBtn") || e.target.closest("#seedBtn2")){
+    if(state.bills.length===0) seed();
+    else askConfirm("Load sample data?", "This replaces your current accounts, bills, and deposits.", "Replace", true)
+           .then(ok=>{ if(ok) seed(); });
+    return;
+  }
+  if(e.target.closest("#addBillBtn")) return openBillDialog();
+  if(e.target.closest("#addAcctBtn")) return openAcctDialog();
+  if(e.target.closest("#exportBtn")) return exportData();
+  if(e.target.closest("#importBtn")) return $("#importFile").click();
+  if(e.target.closest("#driveBackupBtn")) return driveBackup();
+  if(e.target.closest("#driveRestoreBtn")) return openDriveRestore();
+  if(e.target.closest("#wipeBtn")){
+    askConfirm("Erase everything?", "Deletes all accounts, bills, deposits, and settings on this device. Export a backup first if you want to keep anything.", "Erase all", true)
+      .then(ok=>{
+        if(!ok) return;
+        state = normalize({accounts:[], bills:[]});
+        calMonth = null; calSelected = null;
+        save(); render(); toast("All data erased");
+      });
+    return;
+  }
+  const nt = e.target.closest("#notifToggle");
+  if(nt){
+    if(state.settings.browserNotif){ state.settings.browserNotif = false; save(); render(); }
+    else{
+      Notification.requestPermission().then(p=>{
+        if(p==="granted"){ state.settings.browserNotif = true; save(); render(); checkNotifications(); toast("Browser notifications on"); }
+        else{ toast("Notifications are blocked for this site — allow them in your browser settings."); render(); }
+      });
+    }
+    return;
+  }
+  const dt = e.target.closest("#deductToggle");
+  if(dt){ state.settings.deductOnPaid = !state.settings.deductOnPaid; save(); render(); return; }
+});
+
+/* live search: refresh only the list so the input keeps focus while typing */
+$("#view").addEventListener("input", e=>{
+  if(e.target.id==="billSearch"){
+    billFilterText = e.target.value;
+    const list = $("#billsList");
+    if(list) list.innerHTML = billsListHTML();
+    const clr = $("#billSearchClear");
+    if(clr) clr.hidden = !billFilterText;
+  }
+});
+
+$("#view").addEventListener("focusin", e=>{ railFocused = !!e.target.closest(".rail"); updateCalCompact(); });
+$("#view").addEventListener("focusout", ()=>{ railFocused = false; updateCalCompact(); });
+
+$("#view").addEventListener("keydown", e=>{
+  if((e.key==="Enter" || e.key===" ") && e.target instanceof HTMLElement && e.target.dataset.calday){
+    e.preventDefault();
+    selectCalDay(e.target.dataset.calday);
+  }
+});
+
+$("#view").addEventListener("change", e=>{
+  if(e.target.id==="leadDays"){
+    state.settings.leadDays = Math.min(30, Math.max(0, parseInt(e.target.value,10)||0));
+    save(); checkNotifications();
+    const badge = $("#homeBadge"); const n = attentionCount();
+    badge.hidden = n===0; badge.textContent = n;
+  }
+  if(e.target.id==="importFile" && e.target.files[0]){
+    const f = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const s = JSON.parse(reader.result);
+        if(!s || !Array.isArray(s.accounts) || !Array.isArray(s.bills)) throw new Error("bad shape");
+        state = normalize(s); save(); render(); toast("Backup imported");
+      }catch(err){ toast("That file isn't a Cashline backup — nothing was changed."); }
+    };
+    reader.readAsText(f);
+    e.target.value = "";
+  }
+});
+
+/* re-check when the tab becomes visible again, and every 30 min while open */
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ processScheduled(); processBillRolls(); render(); checkNotifications(); } });
+setInterval(()=>{ processScheduled(); processBillRolls(); render(); checkNotifications(); }, 30*60*1000);
+
+processScheduled();
+processBillRolls();
+render(true);
+checkNotifications();
+</script>
+</body>
+</html>
