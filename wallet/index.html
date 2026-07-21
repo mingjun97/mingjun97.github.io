@@ -269,18 +269,43 @@
     margin:0 -16px; padding:6px 16px 8px;
     border-bottom:1px solid transparent;
   }
-  .cal-sticky.compact{border-bottom-color:var(--line); box-shadow:0 6px 14px rgba(10,18,22,.10)}
-  .cal-cell{transition:min-height .2s ease, padding .2s ease, gap .2s ease}
+  /* compact: the bar's own background fades out over the bottom feather so the
+     timeline shows through the next-week row. Eased curve (fast drop, long
+     tail) keeps most of the zone see-through. Painted via a masked ::before
+     because mask stops can carry alpha while var() backgrounds cannot. */
+  .cal-sticky.compact{border-bottom-color:transparent; box-shadow:none; background:transparent}
+  .cal-sticky.compact::before{
+    content:""; position:absolute; inset:0; z-index:-1; background:var(--bg);
+    -webkit-mask-image:linear-gradient(to bottom, #000 calc(100% - 46px), rgba(0,0,0,.85) calc(100% - 24px), rgba(0,0,0,.55) calc(100% - 12px), rgba(0,0,0,.25) calc(100% - 5px), transparent 100%);
+    mask-image:linear-gradient(to bottom, #000 calc(100% - 46px), rgba(0,0,0,.85) calc(100% - 24px), rgba(0,0,0,.55) calc(100% - 12px), rgba(0,0,0,.25) calc(100% - 5px), transparent 100%);
+  }
+  .cal-grid-wrap{position:relative; overflow:hidden; max-height:420px; transition:max-height .28s ease}
+  .cal-grid{transition:transform .28s cubic-bezier(.25,.8,.3,1)}
+  .cal-cell{transition:min-height .2s ease, height .2s ease, padding .2s ease, gap .2s ease, background-color .25s ease}
   .cal-cell .n{transition:font-size .2s ease}
-  .cal-sticky.compact .cal-head{margin:0 2px 6px}
-  .cal-sticky.compact .cal-title{font-size:14px}
-  .cal-sticky.compact .cal-nav{width:28px; height:28px; border-radius:8px}
-  .cal-sticky.compact .cal-nav svg{width:15px; height:15px}
-  .cal-sticky.compact .cal-today-btn{padding:3px 8px; font-size:12px}
+  .cal-cell.past .n{color:var(--faint)}
+  .cal-cell.cur, .cal-cell.cur.evented{background:var(--accent); border-color:var(--accent); box-shadow:0 2px 10px rgba(0,0,0,.28)}
+  .cal-cell.cur .n{color:var(--accent-ink); font-weight:750}
+  .cal-cell.cur.past .n{color:var(--accent-ink)}
+  .cal-cell.cur.today .n{background:var(--accent-ink); color:var(--accent)}
+  .cal-cell.cur .cal-dots i{box-shadow:0 0 0 1px var(--accent-ink)}
+  .cal-cell .m{display:none; font-size:8.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); line-height:1.1}
+  .cal-cell.mstart .m{display:block} /* expanded grid: month shows on the 1st */
+  .cal-cell.today .m{color:var(--accent)}
+  .cal-cell.cur .m{color:var(--accent-ink)}
+  .cal-sticky.compact .cal-head{display:none}
   .cal-sticky.compact .cal-grid{gap:3px}
   .cal-sticky.compact .cal-dow{display:none}
-  .cal-sticky.compact .cal-cell{min-height:24px; padding:1px 0 2px; gap:1px; border-radius:7px}
-  .cal-sticky.compact .cal-cell .n{font-size:11.5px; min-width:20px; border-radius:6px}
+  .cal-sticky.compact .cal-cell .m{display:block}
+  /* lens: current week centered and fully visible, neighbor weeks peeking
+     through a vertical feather above and below */
+  .cal-sticky.compact .cal-grid-wrap{
+    max-height:124px;
+    -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 33px, #000 calc(100% - 33px), rgba(0,0,0,.85) calc(100% - 17px), rgba(0,0,0,.55) calc(100% - 8px), rgba(0,0,0,.25) calc(100% - 3px), transparent 100%);
+    mask-image:linear-gradient(to bottom, transparent 0, #000 33px, #000 calc(100% - 33px), rgba(0,0,0,.85) calc(100% - 17px), rgba(0,0,0,.55) calc(100% - 8px), rgba(0,0,0,.25) calc(100% - 3px), transparent 100%);
+  }
+  .cal-sticky.compact .cal-cell{min-height:46px; height:46px; padding:3px 0 4px; gap:1px; border-radius:9px}
+  .cal-sticky.compact .cal-cell .n{font-size:13.5px; min-width:23px}
   .cal-sticky.compact .cal-dots{height:4px}
   .cal-sticky.compact .cal-dots i{width:4px; height:4px}
   .cal-sticky.compact .cal-legend{display:none}
@@ -1396,7 +1421,6 @@ function renderSettings(){
 }
 
 /* ============ calendar ============ */
-let calMonth = null;    /* {y,m} shown month; null = current */
 let calSelected = null; /* "y-m-d" key of tapped day; null = default */
 const FMON = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 function calKey(d){ return d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate(); }
@@ -1463,45 +1487,41 @@ function calMarker(e){
 const CAL_PRIORITY = {late:0, due:1, sched:2, dep:3, auto:4};
 
 
-/* Month grid block, embedded at the top of Home. Tapping a day scrolls
-   the timeline below to that date. */
+/* Rolling 4-week grid, embedded at the top of Home: this week's Sunday
+   through 27 days out. Tapping a day scrolls the timeline to that date. */
 function calendarHTML(){
   const t = today();
-  const y = calMonth ? calMonth.y : t.getFullYear();
-  const m = calMonth ? calMonth.m : t.getMonth();
-  const isCurMonth = y===t.getFullYear() && m===t.getMonth();
-  const evts = monthEvents(y, m);
-  const byDay = new Map();
-  evts.forEach(e=>{
-    const k = calKey(e.date);
-    if(!byDay.has(k)) byDay.set(k, []);
-    byDay.get(k).push(e);
+  const start = addDays(t, -t.getDay());
+  const end = addDays(start, 27);
+  const byDay = new Map(), seenMonths = new Set();
+  [start, end].forEach(d=>{
+    const mk = d.getFullYear()+"-"+d.getMonth();
+    if(seenMonths.has(mk)) return; seenMonths.add(mk);
+    monthEvents(d.getFullYear(), d.getMonth()).forEach(e=>{
+      const k = calKey(e.date);
+      if(!byDay.has(k)) byDay.set(k, []);
+      byDay.get(k).push(e);
+    });
   });
-  if(calSelected===null && isCurMonth) calSelected = calKey(t);
+  if(calSelected===null) calSelected = calKey(t);
 
-  const dim = new Date(y, m+1, 0).getDate();
-  const lead = new Date(y, m, 1).getDay();
   let cells = DOW.map(d=>`<div class="cal-dow">${d.slice(0,2)}</div>`).join("");
-  for(let i=0;i<lead;i++) cells += `<div class="cal-cell" aria-hidden="true"></div>`;
-  for(let day=1; day<=dim; day++){
-    const d = new Date(y, m, day), k = calKey(d);
+  for(let i=0;i<28;i++){
+    const d = addDays(start, i), k = calKey(d);
     const list = byDay.get(k)||[];
     const dots = list.map(calMarker).sort((a,b)=>CAL_PRIORITY[a]-CAL_PRIORITY[b]).slice(0,3);
-    const isToday = isCurMonth && day===t.getDate();
-    cells += `<div class="cal-cell ${list.length?'evented':''} ${isToday?'today':''} ${calSelected===k?'selected':''}"
-      ${list.length? `data-calday="${k}" role="button" tabindex="0" aria-label="${MON[m]} ${day}: ${list.length} item${list.length===1?'':'s'}"` : ``}>
-      <span class="n">${day}</span>
+    cells += `<div class="cal-cell ${list.length?'evented':''} ${k===calKey(t)?'today':''} ${calSelected===k?'selected':''} ${d<t?'past':''} ${d.getDate()===1?'mstart':''}" data-caldate="${k}"
+      ${list.length? `data-calday="${k}" role="button" tabindex="0" aria-label="${MON[d.getMonth()]} ${d.getDate()}: ${list.length} item${list.length===1?'':'s'}"` : ``}>
+      <span class="m">${MON[d.getMonth()]}</span>
+      <span class="n">${d.getDate()}</span>
       ${dots.length? `<span class="cal-dots">${dots.map(c=>`<i class="${c}"></i>`).join("")}</span>` : ``}
     </div>`;
   }
 
   return `<div class="cal-head">
-      <span class="cal-title">${FMON[m]} ${y}</span>
-      ${!isCurMonth ? `<button class="cal-today-btn" id="calToday">Today</button>` : ``}
-      <button class="cal-nav" id="calPrev" aria-label="Previous month"><svg viewBox="0 0 24 24"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></button>
-      <button class="cal-nav" id="calNext" aria-label="Next month"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></button>
+      <span class="cal-title">${fmtDate(start)} – ${fmtDate(end)}</span>
     </div>
-    <div class="cal-grid">${cells}</div>
+    <div class="cal-grid-wrap"><div class="cal-grid" id="calGrid">${cells}</div></div>
     <div class="cal-legend">
       <span><i class="late"></i>Overdue</span><span><i class="due"></i>Manual pay</span>
       <span><i class="auto"></i>Autopay / paid</span><span><i class="sched"></i>Scheduled</span><span><i class="dep"></i>Deposit</span>
@@ -1509,21 +1529,77 @@ function calendarHTML(){
 }
 
 /* Compact the floating calendar while the list is scrolled or focused.
-   Hysteresis: compacting removes ~190px of page height, so a single
-   threshold would flip-flop at mid-scroll. Compact past 110px, and only
-   expand again near the very top; the state lives in a variable so
-   re-renders can't reset it mid-scroll. */
-let railFocused = false, calCompact = false;
+   Hysteresis: compacting removes page height, so a single threshold would
+   flip-flop at mid-scroll. Compact past 110px, expand again only near the
+   top; state lives in variables so re-renders can't reset it mid-scroll.
+   Tapping the compact bar pins it open (calPinned) without moving the
+   scroll; the pin releases after the user scrolls ~80px away. */
+let railFocused = false, calCompact = false, calPinned = false, pinScrollY = 0;
 function updateCalCompact(){
   const el = document.getElementById("calSticky");
   if(!el) return;
   const y = Math.max(0, window.scrollY);
-  if(railFocused) calCompact = true;
+  if(calPinned && Math.abs(y - pinScrollY) > 80) calPinned = false;
+  if(calPinned) calCompact = false;
+  else if(railFocused) calCompact = true;
   else if(calCompact){ if(y <= 8) calCompact = false; }
   else if(y > 110) calCompact = true;
+  const was = el.classList.contains("compact");
   el.classList.toggle("compact", calCompact);
+  applyCalScrub();
+  if(was !== calCompact){
+    /* cell heights animate for ~250ms — re-anchor the week translate once they settle */
+    clearTimeout(calToggleTimer);
+    calToggleTimer = setTimeout(applyCalScrub, 280);
+  }
 }
-window.addEventListener("scroll", updateCalCompact, {passive:true});
+let calToggleTimer = null;
+function expandCalPinned(){
+  calPinned = true;
+  pinScrollY = Math.max(0, window.scrollY);
+  updateCalCompact();
+}
+/* Scroll scrubber: highlight the day whose timeline group the user is
+   reading, and (when compact) slide the grid so that day's week is the
+   one visible row. Both are CSS-transitioned, so they glide with scroll. */
+function applyCalScrub(){
+  const grid = document.getElementById("calGrid");
+  const sticky = document.getElementById("calSticky");
+  if(!grid || !sticky) return;
+  const marker = sticky.getBoundingClientRect().bottom + 12;
+  let curKey = null;
+  document.querySelectorAll(".rail .day").forEach(g=>{
+    if(g.getBoundingClientRect().top <= marker)
+      curKey = g.id==="day-now" ? calKey(today()) : g.id.slice(4);
+  });
+  if(!curKey) curKey = calKey(today());
+  const keyToDate = k => { const p = k.split("-").map(Number); return new Date(p[0], p[1], p[2]); };
+  let cell = grid.querySelector(`[data-caldate="${curKey}"]`);
+  if(!cell){
+    /* group outside the 4-week window: clamp forward to the last week, backward to today */
+    const all = grid.querySelectorAll("[data-caldate]");
+    const lastCell = all[all.length-1];
+    cell = (lastCell && keyToDate(curKey) > keyToDate(lastCell.dataset.caldate))
+      ? lastCell
+      : grid.querySelector(`[data-caldate="${calKey(today())}"]`);
+  }
+  grid.querySelectorAll(".cal-cell.cur").forEach(c=>{ if(c!==cell) c.classList.remove("cur"); });
+  if(cell) cell.classList.add("cur");
+  if(calCompact && cell){
+    /* center the current week inside the feathered lens */
+    const wrap = grid.parentElement;
+    const center = (wrap.clientHeight - cell.offsetHeight) / 2;
+    grid.style.transform = `translateY(${-(cell.offsetTop - center)}px)`;
+  }else{
+    grid.style.transform = "";
+  }
+}
+let scrubQueued = false;
+window.addEventListener("scroll", ()=>{
+  if(scrubQueued) return;
+  scrubQueued = true;
+  requestAnimationFrame(()=>{ scrubQueued = false; updateCalCompact(); });
+}, {passive:true});
 
 /* Select a calendar day: scroll the Home timeline to that date's group. */
 function selectCalDay(k){
@@ -1553,16 +1629,6 @@ function selectCalDay(k){
   }
 }
 
-function calNav(dir){
-  const t = today();
-  const y = calMonth ? calMonth.y : t.getFullYear();
-  const m = calMonth ? calMonth.m : t.getMonth();
-  const d = new Date(y, m+dir, 1);
-  calMonth = {y:d.getFullYear(), m:d.getMonth()};
-  if(calMonth.y===t.getFullYear() && calMonth.m===t.getMonth()) calMonth = null;
-  calSelected = null;
-  render();
-}
 
 /* ============ toast & undo ============ */
 let toastTimer = null, lastUndo = null;
@@ -2429,11 +2495,9 @@ $("#view").addEventListener("click", e=>{
     billFilterText = ""; billFilterIcon = null;
     render(); return;
   }
+  if(calCompact && e.target.closest("#calSticky")) return expandCalPinned();
   const cd = e.target.closest("[data-calday]");
   if(cd) return selectCalDay(cd.dataset.calday);
-  if(e.target.closest("#calPrev")) return calNav(-1);
-  if(e.target.closest("#calNext")) return calNav(1);
-  if(e.target.closest("#calToday")){ calMonth = null; calSelected = null; render(); return; }
   const goto = e.target.closest("[data-goto]");
   if(goto){ switchTab(goto.dataset.goto); if(goto.dataset.goto==="accounts") openAcctDialog(); if(goto.dataset.goto==="bills") openBillDialog(); return; }
   if(e.target.closest("#seedBtn") || e.target.closest("#seedBtn2")){
@@ -2453,7 +2517,7 @@ $("#view").addEventListener("click", e=>{
       .then(ok=>{
         if(!ok) return;
         state = normalize({accounts:[], bills:[]});
-        calMonth = null; calSelected = null;
+        calSelected = null;
         save(); render(); toast("All data erased");
       });
     return;
