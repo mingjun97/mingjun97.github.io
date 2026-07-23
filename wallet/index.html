@@ -60,7 +60,7 @@
   }
   input, select, textarea{font:inherit; color:var(--ink)}
 
-  .wrap{max-width:640px; margin:0 auto; padding:0 16px calc(84px + env(safe-area-inset-bottom))}
+  .wrap{max-width:640px; margin:0 auto; padding:env(safe-area-inset-top, 0px) 16px calc(84px + env(safe-area-inset-bottom))}
 
   /* ---------- header ---------- */
   .app-head{display:flex; align-items:baseline; justify-content:space-between; padding:20px 2px 6px}
@@ -264,6 +264,7 @@
   /* Floating calendar: sticks to the top of Home; compacts on scroll/focus
      so the transaction list gets the room. */
   .cal-sticky{
+    --sat:env(safe-area-inset-top, 0px);
     position:sticky; top:0; z-index:15;
     background:var(--bg);
     margin:0 -16px; padding:6px 16px 8px;
@@ -273,7 +274,8 @@
      timeline shows through the next-week row. Eased curve (fast drop, long
      tail) keeps most of the zone see-through. Painted via a masked ::before
      because mask stops can carry alpha while var() backgrounds cannot. */
-  .cal-sticky.compact{border-bottom-color:transparent; box-shadow:none; background:transparent}
+  .cal-sticky.compact{border-bottom-color:transparent; box-shadow:none; background:transparent;
+    padding-top:0} /* the lens starts at the physical screen top — its feather occupies the notch area */
   .cal-sticky.compact::before{
     content:""; position:absolute; inset:0; z-index:-1; background:var(--bg);
     -webkit-mask-image:linear-gradient(to bottom, #000 calc(100% - 46px), rgba(0,0,0,.85) calc(100% - 24px), rgba(0,0,0,.55) calc(100% - 12px), rgba(0,0,0,.25) calc(100% - 5px), transparent 100%);
@@ -300,10 +302,13 @@
   /* lens: current week centered and fully visible, neighbor weeks peeking
      through a vertical feather above and below */
   .cal-sticky.compact .cal-grid-wrap{
-    max-height:124px;
-    -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 33px, #000 calc(100% - 33px), rgba(0,0,0,.85) calc(100% - 17px), rgba(0,0,0,.55) calc(100% - 8px), rgba(0,0,0,.25) calc(100% - 3px), transparent 100%);
-    mask-image:linear-gradient(to bottom, transparent 0, #000 33px, #000 calc(100% - 33px), rgba(0,0,0,.85) calc(100% - 17px), rgba(0,0,0,.55) calc(100% - 8px), rgba(0,0,0,.25) calc(100% - 3px), transparent 100%);
+    max-height:calc(208px + var(--sat));
+    -webkit-mask-image:linear-gradient(to bottom, transparent 0, rgba(0,0,0,.5) calc(var(--sat) + 12px), #000 calc(var(--sat) + 40px), #000 calc(100% - 33px), rgba(0,0,0,.85) calc(100% - 17px), rgba(0,0,0,.55) calc(100% - 8px), rgba(0,0,0,.25) calc(100% - 3px), transparent 100%);
+    mask-image:linear-gradient(to bottom, transparent 0, rgba(0,0,0,.5) calc(var(--sat) + 12px), #000 calc(var(--sat) + 40px), #000 calc(100% - 33px), rgba(0,0,0,.85) calc(100% - 17px), rgba(0,0,0,.55) calc(100% - 8px), rgba(0,0,0,.25) calc(100% - 3px), transparent 100%);
   }
+  /* neighbor weeks in the lens: visible for context, visually inactive */
+  .cal-cell{transition:min-height .2s ease, height .2s ease, padding .2s ease, gap .2s ease, background-color .25s ease, opacity .25s ease}
+  .cal-sticky.compact .cal-cell.dimmed{opacity:.55}
   .cal-sticky.compact .cal-cell{min-height:46px; height:46px; padding:3px 0 4px; gap:1px; border-radius:9px}
   .cal-sticky.compact .cal-cell .n{font-size:13.5px; min-width:23px}
   .cal-sticky.compact .cal-dots{height:4px}
@@ -1586,12 +1591,21 @@ function applyCalScrub(){
   grid.querySelectorAll(".cal-cell.cur").forEach(c=>{ if(c!==cell) c.classList.remove("cur"); });
   if(cell) cell.classList.add("cur");
   if(calCompact && cell){
-    /* center the current week inside the feathered lens */
+    /* center the focused week inside the clear band of the lens; the top
+       feather zone additionally spans the device's safe-area (notch) */
     const wrap = grid.parentElement;
-    const center = (wrap.clientHeight - cell.offsetHeight) / 2;
+    const sat = parseFloat(getComputedStyle(sticky).getPropertyValue("--sat")) || 0;
+    const topZone = sat + 40, bottomZone = 33;
+    const band = wrap.clientHeight - topZone - bottomZone;
+    const center = topZone + (band - cell.offsetHeight) / 2;
     grid.style.transform = `translateY(${-(cell.offsetTop - center)}px)`;
+    /* neighbor weeks stay visible but inactive */
+    grid.querySelectorAll(".cal-cell[data-caldate]").forEach(c=>{
+      c.classList.toggle("dimmed", Math.abs(c.offsetTop - cell.offsetTop) > 5);
+    });
   }else{
     grid.style.transform = "";
+    grid.querySelectorAll(".cal-cell.dimmed").forEach(c=>c.classList.remove("dimmed"));
   }
 }
 let scrubQueued = false;
