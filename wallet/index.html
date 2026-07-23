@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Cashline — bill &amp; cash flow tracker</title>
 <style>
   :root{
@@ -53,6 +55,7 @@
     background:var(--bg); color:var(--ink);
     font:16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing:antialiased;
+    min-height:100vh; min-height:100dvh; /* keep the fixed tab bar at the true bottom even when content is short */
   }
   button{font:inherit; color:inherit; background:none; border:none; padding:0; cursor:pointer}
   button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible{
@@ -201,10 +204,13 @@
   .amt.big{font-size:20px}
   .neg{color:var(--danger)}
 
-  .drag-handle{flex:none; align-self:center; padding:8px 2px 8px 10px; color:var(--faint);
+  .drag-handle{flex:none; align-self:center; margin-left:6px; width:34px; height:34px;
+               display:flex; align-items:center; justify-content:center; border-radius:10px;
+               background:var(--accent-tint); color:var(--accent);
                cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none}
   .drag-handle:active{cursor:grabbing}
-  .drag-handle svg{width:18px; height:18px; display:block}
+  .drag-handle svg{width:18px; height:18px; display:block; stroke:currentColor; fill:none;
+                   stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round}
   .card.drag-src{border-color:var(--accent)}
   .card.drop-target{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent)}
   .drag-arrow{position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:60}
@@ -291,6 +297,7 @@
   .cal-cell.cur.past .n{color:var(--accent-ink)}
   .cal-cell.cur.today .n{background:var(--accent-ink); color:var(--accent)}
   .cal-cell.cur .cal-dots i{box-shadow:0 0 0 1px var(--accent-ink)}
+  .cal-sticky:not(.compact) .cal-cell.prevweek{display:none} /* leading week exists for the lens only */
   .cal-cell .m{display:none; font-size:8.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); line-height:1.1}
   .cal-cell.mstart .m{display:block} /* expanded grid: month shows on the 1st */
   .cal-cell.today .m{color:var(--accent)}
@@ -302,9 +309,9 @@
   /* lens: current week centered and fully visible, neighbor weeks peeking
      through a vertical feather above and below */
   .cal-sticky.compact .cal-grid-wrap{
-    max-height:calc(208px + var(--sat));
-    -webkit-mask-image:linear-gradient(to bottom, transparent 0, rgba(0,0,0,.5) calc(var(--sat) + 12px), #000 calc(var(--sat) + 40px), #000 calc(100% - 33px), rgba(0,0,0,.85) calc(100% - 17px), rgba(0,0,0,.55) calc(100% - 8px), rgba(0,0,0,.25) calc(100% - 3px), transparent 100%);
-    mask-image:linear-gradient(to bottom, transparent 0, rgba(0,0,0,.5) calc(var(--sat) + 12px), #000 calc(var(--sat) + 40px), #000 calc(100% - 33px), rgba(0,0,0,.85) calc(100% - 17px), rgba(0,0,0,.55) calc(100% - 8px), rgba(0,0,0,.25) calc(100% - 3px), transparent 100%);
+    max-height:calc(100px + var(--sat));
+    -webkit-mask-image:linear-gradient(to bottom, transparent 0, rgba(0,0,0,.5) calc(var(--sat) + 6px), #000 calc(var(--sat) + 22px), #000 calc(100% - 33px), rgba(0,0,0,.85) calc(100% - 17px), rgba(0,0,0,.55) calc(100% - 8px), rgba(0,0,0,.25) calc(100% - 3px), transparent 100%);
+    mask-image:linear-gradient(to bottom, transparent 0, rgba(0,0,0,.5) calc(var(--sat) + 6px), #000 calc(var(--sat) + 22px), #000 calc(100% - 33px), rgba(0,0,0,.85) calc(100% - 17px), rgba(0,0,0,.55) calc(100% - 8px), rgba(0,0,0,.25) calc(100% - 3px), transparent 100%);
   }
   /* neighbor weeks in the lens: visible for context, visually inactive */
   .cal-cell{transition:min-height .2s ease, height .2s ease, padding .2s ease, gap .2s ease, background-color .25s ease, opacity .25s ease}
@@ -721,7 +728,32 @@
 
 <script>
 "use strict";
+/* Fullscreen / notch support: the hosting page may supply its own viewport
+   meta (the artifact wrapper does), so patch the live DOM to guarantee
+   viewport-fit=cover and home-screen fullscreen on iOS. */
+(function(){
+  try{
+    let vp = document.querySelector('meta[name="viewport"]');
+    if(!vp){
+      vp = document.createElement("meta"); vp.name = "viewport";
+      vp.content = "width=device-width, initial-scale=1, viewport-fit=cover";
+      document.head.appendChild(vp);
+    }else if(!/viewport-fit/.test(vp.content)){
+      vp.content += ", viewport-fit=cover";
+    }
+    if(!document.querySelector('meta[name="apple-mobile-web-app-capable"]')){
+      const c = document.createElement("meta");
+      c.name = "apple-mobile-web-app-capable"; c.content = "yes";
+      document.head.appendChild(c);
+      const s = document.createElement("meta");
+      s.name = "apple-mobile-web-app-status-bar-style"; s.content = "black-translucent";
+      document.head.appendChild(s);
+    }
+  }catch(e){}
+})();
+
 /* ============ state ============ */
+const APP_VERSION = "1.18.0";
 const KEY = "cashline.v1";
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -1354,7 +1386,7 @@ function renderAccounts(){
             <div class="sub-sm">balance</div>
           </div>
           ${state.accounts.length>1 ? `<span class="drag-handle" data-draghandle="${a.id}" aria-hidden="true" title="Drag onto another account to transfer">
-            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M8.5 20V5.5M8.5 5.5 5.2 8.8M8.5 5.5l3.3 3.3"/><path d="M15.5 4v14.5M15.5 18.5l-3.3-3.3M15.5 18.5l3.3-3.3"/></svg>
           </span>` : ``}
         </div>
         <div class="meter ${dips?'short':''}" role="img" aria-label="${money(p.need)} going out of ${money(avail)} available"><i style="width:${pct}%"></i></div>
@@ -1422,6 +1454,7 @@ function renderSettings(){
     <div class="set-row"><div><div class="lab" style="font-weight:600">Drive backup</div><div class="sub-sm">Works when Cashline is opened from your Claude artifacts on claude.ai, where it can use your Google Drive connector. In this copy, use Export/Import above.</div></div></div>
   </div>`}
   <p class="sub-sm" style="margin:14px 2px">Your data stays in this browser — nothing is sent anywhere except backups you explicitly save to your own Google Drive. Export a backup before switching devices or clearing browser data.</p>
+  <p class="sub-sm" style="margin:4px 2px; color:var(--faint)">Cashline v${APP_VERSION}</p>
   <input type="file" id="importFile" accept="application/json" hidden>`;
 }
 
@@ -1496,26 +1529,28 @@ const CAL_PRIORITY = {late:0, due:1, sched:2, dep:3, auto:4};
    through 27 days out. Tapping a day scrolls the timeline to that date. */
 function calendarHTML(){
   const t = today();
-  const start = addDays(t, -t.getDay());
-  const end = addDays(start, 27);
+  /* one extra week BEFORE the rolling window: hidden in the expanded grid,
+     shown (dimmed) in the compact lens as leading context */
+  const start = addDays(t, -t.getDay() - 7);
+  const end = addDays(start, 34);
   const byDay = new Map(), seenMonths = new Set();
-  [start, end].forEach(d=>{
+  for(let d = new Date(start); d <= end; d = addDays(d, 7)){
     const mk = d.getFullYear()+"-"+d.getMonth();
-    if(seenMonths.has(mk)) return; seenMonths.add(mk);
+    if(seenMonths.has(mk)) continue; seenMonths.add(mk);
     monthEvents(d.getFullYear(), d.getMonth()).forEach(e=>{
       const k = calKey(e.date);
       if(!byDay.has(k)) byDay.set(k, []);
       byDay.get(k).push(e);
     });
-  });
+  }
   if(calSelected===null) calSelected = calKey(t);
 
   let cells = DOW.map(d=>`<div class="cal-dow">${d.slice(0,2)}</div>`).join("");
-  for(let i=0;i<28;i++){
+  for(let i=0;i<35;i++){
     const d = addDays(start, i), k = calKey(d);
     const list = byDay.get(k)||[];
     const dots = list.map(calMarker).sort((a,b)=>CAL_PRIORITY[a]-CAL_PRIORITY[b]).slice(0,3);
-    cells += `<div class="cal-cell ${list.length?'evented':''} ${k===calKey(t)?'today':''} ${calSelected===k?'selected':''} ${d<t?'past':''} ${d.getDate()===1?'mstart':''}" data-caldate="${k}"
+    cells += `<div class="cal-cell ${i<7?'prevweek':''} ${list.length?'evented':''} ${k===calKey(t)?'today':''} ${calSelected===k?'selected':''} ${d<t?'past':''} ${d.getDate()===1?'mstart':''}" data-caldate="${k}"
       ${list.length? `data-calday="${k}" role="button" tabindex="0" aria-label="${MON[d.getMonth()]} ${d.getDate()}: ${list.length} item${list.length===1?'':'s'}"` : ``}>
       <span class="m">${MON[d.getMonth()]}</span>
       <span class="n">${d.getDate()}</span>
@@ -1524,7 +1559,7 @@ function calendarHTML(){
   }
 
   return `<div class="cal-head">
-      <span class="cal-title">${fmtDate(start)} – ${fmtDate(end)}</span>
+      <span class="cal-title">${fmtDate(addDays(start,7))} – ${fmtDate(end)}</span>
     </div>
     <div class="cal-grid-wrap"><div class="cal-grid" id="calGrid">${cells}</div></div>
     <div class="cal-legend">
@@ -1595,7 +1630,7 @@ function applyCalScrub(){
        feather zone additionally spans the device's safe-area (notch) */
     const wrap = grid.parentElement;
     const sat = parseFloat(getComputedStyle(sticky).getPropertyValue("--sat")) || 0;
-    const topZone = sat + 40, bottomZone = 33;
+    const topZone = sat + 22, bottomZone = 33;
     const band = wrap.clientHeight - topZone - bottomZone;
     const center = topZone + (band - cell.offsetHeight) / 2;
     grid.style.transform = `translateY(${-(cell.offsetTop - center)}px)`;
@@ -2216,33 +2251,53 @@ function drawArrow(o, x1, y1, x2, y2){
   const p = a => (x2 - s*Math.cos(ang-a)) + "," + (y2 - s*Math.sin(ang-a));
   o.head.setAttribute("points", `${x2},${y2} ${p(.46)} ${p(-.46)}`);
 }
+/* Redraw the arrow (origin tracks the source card, which moves when the
+   page auto-scrolls) and re-run the drop-target hit test. */
+function updateDrag(){
+  if(!drag) return;
+  const hr = drag.handle.getBoundingClientRect();
+  drawArrow(drag.overlay, hr.left + hr.width/2, hr.top + hr.height/2, drag.px, drag.py);
+  const el = document.elementFromPoint(drag.px, drag.py);
+  const over = el && el.closest ? el.closest(".card[data-acct]") : null;
+  const t = (over && over!==drag.card) ? over : null;
+  if(drag.target && drag.target!==t) drag.target.classList.remove("drop-target");
+  if(t) t.classList.add("drop-target");
+  drag.target = t;
+}
+/* Hold the pointer near the top/bottom edge to scroll the list while dragging,
+   so off-screen accounts become reachable. Speed grows with edge proximity. */
+let dragRAF = 0;
+function dragTick(){
+  if(!drag) return;
+  const topZone = 90, bottomZone = window.innerHeight - 130;
+  let dy = 0;
+  if(drag.py < topZone) dy = -Math.min(18, Math.ceil((topZone - drag.py) / 5));
+  else if(drag.py > bottomZone) dy = Math.min(18, Math.ceil((drag.py - bottomZone) / 5));
+  if(dy){ window.scrollBy(0, dy); updateDrag(); }
+  dragRAF = requestAnimationFrame(dragTick);
+}
 $("#view").addEventListener("pointerdown", e=>{
   const h = e.target.closest("[data-draghandle]");
   if(!h) return;
   const card = h.closest(".card[data-acct]");
   if(!card) return;
   e.preventDefault();
-  const hr = h.getBoundingClientRect();
-  const ox = hr.left + hr.width/2, oy = hr.top + hr.height/2;
-  const overlay = makeDragOverlay();
-  drawArrow(overlay, ox, oy, e.clientX, e.clientY);
   card.classList.add("drag-src");
-  drag = {id:h.dataset.draghandle, card, overlay, ox, oy, target:null};
+  drag = {id:h.dataset.draghandle, card, handle:h, overlay:makeDragOverlay(),
+          px:e.clientX, py:e.clientY, target:null};
+  updateDrag();
+  dragRAF = requestAnimationFrame(dragTick);
   try{ h.setPointerCapture(e.pointerId); }catch(err){}
 });
 window.addEventListener("pointermove", e=>{
   if(!drag) return;
-  drawArrow(drag.overlay, drag.ox, drag.oy, e.clientX, e.clientY);
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  const over = el && el.closest ? el.closest(".card[data-acct]") : null;
-  const t = (over && over!==drag.card) ? over : null;
-  if(drag.target && drag.target!==t) drag.target.classList.remove("drop-target");
-  if(t) t.classList.add("drop-target");
-  drag.target = t;
+  drag.px = e.clientX; drag.py = e.clientY;
+  updateDrag();
 });
 function endDrag(commit){
   if(!drag) return;
   const d = drag; drag = null;
+  cancelAnimationFrame(dragRAF);
   d.overlay.svg.remove();
   d.card.classList.remove("drag-src");
   if(d.target) d.target.classList.remove("drop-target");
