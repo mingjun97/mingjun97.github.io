@@ -51,7 +51,8 @@
     display: flex; align-items: center; justify-content: center; flex: none;
   }
   .iconbtn:active { transform: scale(.94); }
-  .iconbtn.spin { animation: spin 1s linear infinite; }
+  .iconbtn .ico { display: block; line-height: 1; }
+  .iconbtn.spin .ico { animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .dirswitch {
@@ -148,8 +149,8 @@
         <span class="sub" id="clockNow"></span>
       </h1>
     </div>
-    <button class="iconbtn" id="refreshBtn" title="Refresh" aria-label="Refresh">⟳</button>
-    <button class="iconbtn" id="settingsBtn" title="Settings" aria-label="Settings">⚙︎</button>
+    <button class="iconbtn" id="refreshBtn" title="Refresh" aria-label="Refresh"><span class="ico">⟳</span></button>
+    <button class="iconbtn" id="settingsBtn" title="Settings" aria-label="Settings"><span class="ico">⚙︎</span></button>
   </header>
 
   <div class="dirswitch">
@@ -226,6 +227,11 @@
       <label>Cached data</label>
       <button class="btn ghost" id="clearCache" style="width:100%">Clear cached stop &amp; schedule data</button>
     </div>
+    <div class="field">
+      <label>Diagnostics</label>
+      <pre id="debugBox" style="background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:11px;line-height:1.5;overflow:auto;max-height:220px;white-space:pre-wrap;word-break:break-word;margin:0"></pre>
+      <div class="hint">If a card looks wrong or empty, screenshot this box — it shows exactly what the APIs returned.</div>
+    </div>
     <div class="actions">
       <button class="btn ghost" id="modalClose">Close</button>
       <button class="btn" id="modalSave">Save</button>
@@ -265,11 +271,11 @@ const state = {
   proxyMode: LS.read('proxyMode', 'auto'),
   direction: LS.read('direction', 'toSFO'),   // toSFO | toMLBR
   terminal: LS.read('terminal', '2'),
-  stops: LS.read('stopsV2', null),            // discovered stop config {millbraeTC:{...}, terminals:[...], dirToSFO, dirToMLBR, ts}
   showAllSam: false,
   showAllBart: false,
-  sam: { live: [], sched: [], err: '', sub: '' },
-  bart: { live: [], sched: [], err: '', sub: '' },
+  sam: { live: [], sched: [], err: '', note: '', sub: '', boardStop: null },
+  bart: { live: [], sched: [], err: '', note: '', sub: '' },
+  debug: {},
   lastFetch: 0,
   fetching: false,
 };
@@ -345,7 +351,15 @@ async function fetchText(url, hostTag) {
 class HttpError extends Error {
   constructor(status) { super('HTTP ' + status); this.status = status; }
 }
+function calls511LastHour() {
+  return LS.read('calls511', []).filter(t => Date.now() - t < 36e5).length;
+}
 async function fetchJSON(url, hostTag) {
+  if (hostTag === '511') {
+    const calls = LS.read('calls511', []).filter(t => Date.now() - t < 36e5);
+    calls.push(Date.now());
+    LS.write('calls511', calls);
+  }
   const t = await fetchText(url, hostTag);
   return JSON.parse(t.replace(/^\uFEFF/, '')); // 511 responses carry a BOM
 }
@@ -374,117 +388,149 @@ async function samLines() {
   } catch (e) { return ['292']; }
 }
 
-// Discover boarding stops + direction refs from the 292 journey patterns.
-async function discoverStops() {
-  if (state.stops && (Date.now() - state.stops.ts) < 7 * 864e5) return state.stops;
-  let discovered = null;
-  try {
-    const j = await fetchJSON(`${API511}/patterns?api_key=${encodeURIComponent(state.key511)}&operator_id=SM&line_id=292&format=json`, '511');
-    const patterns = (j && j.journeyPatterns) || (j && j.JourneyPatterns) || [];
-    const parsed = [];
-    for (const p of patterns) {
-      const seq = ((p.PointsInSequence || {}).StopPointInJourneyPattern) || [];
-      const pts = seq.map(s => ({
-        code: String(s.ScheduledStopPointRef || s.stopPointRef || ''),
-        name: String(s.Name || s.name || ''),
-        order: +(s.Order || 0),
-      })).sort((a, b) => a.order - b.order);
-      if (pts.length) parsed.push({ dir: String(p.DirectionRef || ''), pts });
-    }
-    const isMLBR = n => /millbrae transit center/i.test(n);
-    const isSFO = n => /sfo airport terminal/i.test(n);
-    let toSFO = null, toMLBR = null;
-    for (const p of parsed) {
-      const iM = p.pts.findIndex(x => isMLBR(x.name));
-      const iS = p.pts.findIndex(x => isSFO(x.name));
-      if (iM < 0 || iS < 0) continue;
-      if (iM < iS && !toSFO) toSFO = p;
-      if (iS < iM && !toMLBR) toMLBR = p;
-    }
-    if (toSFO && toMLBR) {
-      const term = dirPts => dirPts.pts.filter(x => isSFO(x.name)).map(x => ({
-        key: (x.name.match(/terminal\s+([A-Z0-9]+)/i) || [])[1] || x.name,
-        code: x.code, name: x.name,
-      }));
-      discovered = {
-        ts: Date.now(),
-        dirToSFO: toSFO.dir, dirToMLBR: toMLBR.dir,
-        millbraeTC: toSFO.pts[toSFO.pts.findIndex(x => isMLBR(x.name))],
-        terminals: term(toMLBR).length ? term(toMLBR) : FALLBACK.terminals,
-      };
-    }
-  } catch (e) { /* fall through to fallback */ }
-  if (!discovered) {
-    discovered = { ts: Date.now(), dirToSFO: null, dirToMLBR: null, millbraeTC: FALLBACK.millbraeTC, terminals: FALLBACK.terminals };
+// Deep-scan a response for the first array of objects that look like stops
+function findStopArray(node, depth) {
+  if (!node || depth > 6) return null;
+  if (Array.isArray(node)) {
+    if (node.length && typeof node[0] === 'object' && node[0] &&
+        ('id' in node[0] || 'ID' in node[0]) && ('Name' in node[0] || 'name' in node[0])) return node;
+    for (const x of node) { const r = findStopArray(x, depth + 1); if (r) return r; }
+    return null;
   }
-  state.stops = discovered;
-  LS.write('stopsV2', discovered);
-  return discovered;
+  if (typeof node === 'object') {
+    for (const k of Object.keys(node)) { const r = findStopArray(node[k], depth + 1); if (r) return r; }
+  }
+  return null;
 }
 
-function currentTerminal() {
-  const stops = state.stops || { terminals: FALLBACK.terminals };
-  return stops.terminals.find(t => String(t.key) === String(state.terminal)) || stops.terminals[0];
+// Full SamTrans stop directory (code -> name), cached a week
+async function stopsIndex() {
+  let idx = cache511('stopsIdx', 7 * 864e5);
+  if (idx) return idx;
+  const j = await fetchJSON(`${API511}/stops?api_key=${encodeURIComponent(state.key511)}&operator_id=SM&format=json`, '511');
+  const arr = findStopArray(j, 0) || [];
+  idx = arr.map(s => ({ code: String(s.id || s.ID || ''), name: String(s.Name || s.name || '') }))
+           .filter(s => s.code && s.name);
+  if (idx.length) cache511Set('stopsIdx', idx);
+  return idx;
 }
 
-function samBoardStop() {
-  const stops = state.stops || { millbraeTC: FALLBACK.millbraeTC, terminals: FALLBACK.terminals };
-  return state.direction === 'toSFO' ? stops.millbraeTC : currentTerminal();
+const MLBR_RX = /millbrae\s*(transit\s*center|bart|intermodal|station)/i;
+function terminalStopRx(key) { return new RegExp('(sfo|airport).*terminal\\s*' + key + '|terminal\\s*' + key + '.*(sfo|airport)', 'i'); }
+
+function currentTerminalFallback() {
+  return FALLBACK.terminals.find(t => String(t.key) === String(state.terminal)) || FALLBACK.terminals[0];
 }
 
-// direction filter for a stop visit
-function samDirectionOK(dirRef, destName, line) {
-  const stops = state.stops || {};
-  const want = state.direction === 'toSFO' ? stops.dirToSFO : stops.dirToMLBR;
-  // strict DirectionRef match only for 292 (the refs were learned from 292's patterns)
-  if (want && dirRef && line === '292') return String(dirRef) === String(want);
-  const d = destName || '';
-  return state.direction === 'toSFO'
-    ? /san francisco|sf\b|transit center|airport|sfo/i.test(d)
-    : /hillsdale|san mateo|millbrae|caltrain/i.test(d);
+// Candidate boarding stops, best guess first. Learned winners (stops that have
+// actually produced 292 predictions before) take priority.
+async function samCandidates() {
+  const dirKey = state.direction === 'toSFO' ? 'toSFO' : 'toMLBR.' + state.terminal;
+  const learned = LS.read('learnedStops', {});
+  let list = [];
+  try {
+    const idx = await stopsIndex();
+    list = state.direction === 'toSFO'
+      ? idx.filter(s => MLBR_RX.test(s.name))
+      : idx.filter(s => terminalStopRx(state.terminal).test(s.name));
+  } catch (e) { /* directory unavailable — fall back to constants */ }
+  const fb = state.direction === 'toSFO' ? FALLBACK.millbraeTC : currentTerminalFallback();
+  if (!list.some(s => s.code === fb.code)) list.push(fb);
+  if (learned[dirKey]) {
+    list = [{ code: learned[dirKey].code, name: learned[dirKey].name }, ...list.filter(s => s.code !== learned[dirKey].code)];
+  } else if (list[0] && list[0].code !== fb.code) {
+    // fallback constant second so it's probed early
+    list = [fb, ...list.filter(s => s.code !== fb.code)];
+  }
+  return { dirKey, list };
 }
 
-async function loadSamLive(lines) {
-  const stop = samBoardStop();
-  const url = `${API511}/StopMonitoring?api_key=${encodeURIComponent(state.key511)}&agency=SM&stopcode=${encodeURIComponent(stop.code)}&format=json`;
-  const j = await fetchJSON(url, '511');
+// 'NB' = toward SF/SFO, 'SB' = toward Millbrae/Hillsdale, '?' = can't tell
+function classifyTrip(destName, dirRef) {
+  const d = String(destName || '');
+  if (/hillsdale|san mateo|burlingame|redwood|millbrae|palo alto/i.test(d)) return 'SB';
+  if (/san francisco|transbay|salesforce|daly city|\bsf\b|sfo|airport/i.test(d)) return 'NB';
+  const r = String(dirRef || '').toUpperCase();
+  if (/^(N|NB|NORTH|IB|INBOUND|0)$/.test(r)) return 'NB';
+  if (/^(S|SB|SOUTH|OB|OUTBOUND|1)$/.test(r)) return 'SB';
+  return '?';
+}
+function wantedDir() { return state.direction === 'toSFO' ? 'NB' : 'SB'; }
+
+function parseVisits(j) {
   const sd = ((j.Siri || j).ServiceDelivery) || {};
   const smd = Array.isArray(sd.StopMonitoringDelivery) ? sd.StopMonitoringDelivery[0] : (sd.StopMonitoringDelivery || {});
-  const visits = smd.MonitoredStopVisit || [];
-  const out = [];
+  const v = smd.MonitoredStopVisit || [];
+  return Array.isArray(v) ? v : [v];
+}
+
+async function probeStop(stop, lines) {
+  const url = `${API511}/StopMonitoring?api_key=${encodeURIComponent(state.key511)}&agency=SM&stopCode=${encodeURIComponent(stop.code)}&format=json`;
+  const visits = parseVisits(await fetchJSON(url, '511'));
+  const matched = [], others = [];
   for (const v of visits) {
     const mvj = v.MonitoredVehicleJourney || {};
     const line = String(mvj.LineRef || '');
-    if (!lines.includes(line)) continue;
-    if (!samDirectionOK(mvj.DirectionRef, mvj.DestinationName, line)) continue;
+    const cls = classifyTrip(mvj.DestinationName, mvj.DirectionRef);
+    if (!lines.includes(line) || (cls !== wantedDir() && cls !== '?')) {
+      others.push(`${line}→${mvj.DestinationName || mvj.DirectionRef || '?'}`);
+      continue;
+    }
     const call = mvj.MonitoredCall || {};
     const iso = call.ExpectedDepartureTime || call.ExpectedArrivalTime || call.AimedDepartureTime || call.AimedArrivalTime;
     const mins = minsFromNowISO(iso);
-    if (mins === null || mins < -1 || mins > 180) continue;
+    if (mins === null || mins < -1 || mins > 240) continue;
     const loc = mvj.VehicleLocation || {};
     const lat = parseFloat(loc.Latitude), lon = parseFloat(loc.Longitude);
-    out.push({
+    matched.push({
       mins: Math.max(0, mins),
       clock: clockFromISO(iso),
-      dest: `${line} · to ${mvj.DestinationName || (state.direction === 'toSFO' ? 'San Francisco' : 'Hillsdale')}`,
+      dest: `${line} · to ${mvj.DestinationName || (state.direction === 'toSFO' ? 'San Francisco' : 'Hillsdale')}${cls === '?' ? ' (?)' : ''}`,
       live: !!(call.ExpectedDepartureTime || call.ExpectedArrivalTime),
       map: (isFinite(lat) && isFinite(lon)) ? `https://maps.google.com/?q=${lat},${lon}` : null,
     });
   }
-  out.sort((a, b) => a.mins - b.mins);
-  state.sam.live = out;
-  state.sam.sub = `from ${stop.name}` + (state.direction === 'toSFO' ? ' · get off at your terminal' : ' · get off at Millbrae Transit Center');
+  matched.sort((a, b) => a.mins - b.mins);
+  return { matched, others, total: visits.length };
+}
+
+async function loadSamLive(lines) {
+  const { dirKey, list } = await samCandidates();
+  const probed = [];
+  let chosen = null, rows = [];
+  for (const stop of list.slice(0, 4)) {
+    let r;
+    try { r = await probeStop(stop, lines); }
+    catch (e) { probed.push({ stop: stop.name, code: stop.code, error: String(e.message || e) }); continue; }
+    probed.push({ stop: stop.name, code: stop.code, total: r.total, matched: r.matched.length, others: r.others.slice(0, 6) });
+    if (r.matched.length) { chosen = stop; rows = r.matched; break; }
+    if (!chosen && r.total > 0) chosen = stop; // stop is alive, just nothing matching yet
+  }
+  state.debug.sam = { at: fmtClock.format(new Date()), dir: dirKey, probed };
+  if (rows.length) {
+    LS.write('learnedStops', Object.assign(LS.read('learnedStops', {}), { [dirKey]: { code: chosen.code, name: chosen.name } }));
+  }
+  state.sam.live = rows;
+  const boardStop = chosen || list[0];
+  state.sam.boardStop = boardStop;
+  state.sam.sub = `from ${boardStop.name}` + (state.direction === 'toSFO' ? ' · get off at your terminal' : ' · get off at Millbrae Transit Center');
+  if (!rows.length) {
+    state.sam.note = `No live 292 predictions right now (checked ${probed.length} stop${probed.length > 1 ? 's' : ''} at ${state.direction === 'toSFO' ? 'Millbrae TC' : 'Terminal ' + state.terminal}). Scheduled times below still apply — live tracking usually appears ~30 min before departure.`;
+  }
 }
 
 async function loadSamSched(lines) {
-  const stop = samBoardStop();
+  const stop = state.sam.boardStop || (state.direction === 'toSFO' ? FALLBACK.millbraeTC : currentTerminalFallback());
   const day = ptParts().date;
   const ck = `tt.${stop.code}.${day}`;
   let visits = cache511(ck, 6 * 36e5);
   if (!visits) {
     const url = `${API511}/stoptimetable?api_key=${encodeURIComponent(state.key511)}&OperatorRef=SM&MonitoringRef=${encodeURIComponent(stop.code)}&format=json`;
     const j = await fetchJSON(url, '511');
-    const raw = (((j.Siri || j).ServiceDelivery || {}).StopTimetableDelivery || {}).TimetabledStopVisit || [];
+    const root = ((j.Siri || j).ServiceDelivery || {});
+    const std = Array.isArray(root.StopTimetableDelivery) ? root.StopTimetableDelivery[0] : (root.StopTimetableDelivery || {});
+    let raw = std.TimetabledStopVisit || [];
+    if (!Array.isArray(raw)) raw = [raw];
     visits = raw.map(v => {
       const tvj = v.TargetedVehicleJourney || {};
       const call = tvj.TargetedCall || {};
@@ -500,12 +546,14 @@ async function loadSamSched(lines) {
   const out = [];
   for (const v of visits) {
     if (!lines.includes(v.line)) continue;
-    if (!samDirectionOK(v.dir, v.dest)) continue;
+    const cls = classifyTrip(v.dest, v.dir);
+    if (cls !== wantedDir() && cls !== '?') continue;
     const mins = minsFromNowISO(v.iso);
     if (mins === null || mins < 2) continue;
-    out.push({ mins, clock: clockFromISO(v.iso), dest: `${v.line} · to ${v.dest || '—'}`, live: false });
+    out.push({ mins, clock: clockFromISO(v.iso), dest: `${v.line} · to ${v.dest || '—'}${cls === '?' ? ' (?)' : ''}`, live: false });
   }
   out.sort((a, b) => a.mins - b.mins);
+  state.debug.samSched = { stop: stop.name, code: stop.code, rows: out.length, rawCount: visits.length };
   // hide schedule entries that duplicate a live prediction (within 4 min of one)
   state.sam.sched = out.filter(s => !state.sam.live.some(l => Math.abs(l.mins - s.mins) <= 4));
 }
@@ -521,13 +569,15 @@ async function refreshSamTrans() {
     return;
   }
   try {
-    await discoverStops();
+    state.sam.note = '';
     const lines = await samLines();
     await loadSamLive(lines);
-    try { await loadSamSched(lines); } catch (e) { state.sam.sched = []; }
-    state.sam.err = ''; state.sam.note = '';
+    try { await loadSamSched(lines); }
+    catch (e) { state.sam.sched = []; state.debug.samSched = { error: String(e.message || e) }; }
+    state.sam.err = '';
   } catch (e) {
     state.sam.live = []; state.sam.sched = []; state.sam.note = '';
+    state.debug.sam = { error: String(e.message || e) };
     state.sam.err = (e instanceof HttpError && e.status === 401) ? 'Invalid 511 token — check it in ⚙︎ settings.'
       : (e instanceof HttpError && e.status === 429) ? '511 rate limit hit — will retry shortly.'
       : 'Couldn’t reach 511.org — will retry.';
@@ -571,7 +621,8 @@ async function refreshBart() {
     state.bart.live = [];
     state.bart.err = 'Couldn’t reach BART API — will retry.';
   }
-  try { await loadBartSched(orig); } catch (e) { state.bart.sched = []; }
+  try { await loadBartSched(orig); }
+  catch (e) { state.bart.sched = []; state.debug.bartSched = { error: String(e.message || e) }; }
 }
 
 async function loadBartSched(orig) {
@@ -580,14 +631,17 @@ async function loadBartSched(orig) {
   let items = cache511(ck, 6 * 36e5); // reuse cache helper
   if (!items) {
     const j = await fetchJSON(`${APIBART}/sched.aspx?cmd=stnsched&orig=${orig}&key=${encodeURIComponent(state.keyBart)}&json=y`, 'bart');
-    const st = ((j.root || {}).station || [])[0] || {};
-    const raw = Array.isArray(st.item) ? st.item : (st.item ? [st.item] : []);
+    let st = (j.root || {}).station || {};
+    if (Array.isArray(st)) st = st[0] || {};
+    let raw = st.item || [];
+    if (!Array.isArray(raw)) raw = [raw].filter(Boolean);
     items = raw.map(it => ({
       head: String(it['@trainHeadStation'] || it.trainHeadStation || ''),
       time: String(it['@origTime'] || it.origTime || ''),
       line: String(it['@line'] || it.line || ''),
     }));
-    cache511Set(ck, items);
+    state.debug.bartSched = { orig, rawCount: items.length };
+    if (items.length) cache511Set(ck, items);
   }
   const now = ptParts().minsSinceMidnight;
   const out = [];
@@ -621,7 +675,7 @@ function rowHTML(r) {
 function escapeHTML(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
 function renderCard(prefix, data, showAll) {
-  const rows = [...data.live, ...data.sched];
+  const rows = [...data.live, ...data.sched].sort((a, b) => a.mins - b.mins);
   const visible = showAll ? rows.slice(0, 24) : rows.slice(0, 5);
   $(prefix + 'Rows').innerHTML = visible.map(rowHTML).join('') ||
     ((data.err || data.note) ? '' : '<div class="row"><div class="info"><div class="meta">No upcoming departures found right now.</div></div></div>');
@@ -651,7 +705,7 @@ function render() {
 
 function renderTerminalChips() {
   const holder = $('terminalChips');
-  const terms = (state.stops || FALLBACK).terminals || FALLBACK.terminals;
+  const terms = FALLBACK.terminals;
   const lbl = state.direction === 'toMLBR' ? 'Board at terminal:' : 'Going to terminal:';
   let html = `<span class="lbl">${lbl}</span>`;
   for (const t of terms) {
@@ -685,7 +739,9 @@ function startTimers() {
   clearInterval(tickTimer); clearInterval(samTimer); clearInterval(bartTimer);
   tickTimer = setInterval(render, 15000);
   bartTimer = setInterval(() => { if (!document.hidden) refreshBart().then(render); }, 60000);
-  samTimer = setInterval(() => { if (!document.hidden && state.key511) refreshSamTrans().then(render); }, 150000);
+  samTimer = setInterval(() => {
+    if (!document.hidden && state.key511 && calls511LastHour() < 40) refreshSamTrans().then(render);
+  }, 150000);
 }
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && Date.now() - state.lastFetch > 60000) refresh(true);
@@ -721,6 +777,11 @@ $('settingsBtn').addEventListener('click', () => {
   $('setKey511').value = state.key511;
   $('setKeyBart').value = state.keyBart;
   $('setProxy').value = state.proxyMode;
+  $('debugBox').textContent = JSON.stringify({
+    calls511LastHour: calls511LastHour(),
+    learnedStops: LS.read('learnedStops', {}),
+    ...state.debug,
+  }, null, 1);
   $('modalBg').classList.add('open');
 });
 $('modalClose').addEventListener('click', () => $('modalBg').classList.remove('open'));
@@ -740,7 +801,6 @@ $('clearCache').addEventListener('click', () => {
   Object.keys(localStorage).filter(k => k.startsWith(LS.k)).forEach(k => {
     if (!keep.includes(k.slice(LS.k.length))) localStorage.removeItem(k);
   });
-  state.stops = null;
   refresh(true);
 });
 
