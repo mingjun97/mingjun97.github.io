@@ -51,7 +51,8 @@
     display: flex; align-items: center; justify-content: center; flex: none;
   }
   .iconbtn:active { transform: scale(.94); }
-  .iconbtn.spin { animation: spin 1s linear infinite; }
+  .iconbtn .ico { display: block; line-height: 1; }
+  .iconbtn.spin .ico { animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .dirswitch {
@@ -148,8 +149,8 @@
         <span class="sub" id="clockNow"></span>
       </h1>
     </div>
-    <button class="iconbtn" id="refreshBtn" title="Refresh" aria-label="Refresh">⟳</button>
-    <button class="iconbtn" id="settingsBtn" title="Settings" aria-label="Settings">⚙︎</button>
+    <button class="iconbtn" id="refreshBtn" title="Refresh" aria-label="Refresh"><span class="ico">⟳</span></button>
+    <button class="iconbtn" id="settingsBtn" title="Settings" aria-label="Settings"><span class="ico">⚙︎</span></button>
   </header>
 
   <div class="dirswitch">
