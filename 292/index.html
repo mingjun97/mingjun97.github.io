@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f17">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Millbrae⇄SFO">
+<title>Millbrae ⇄ SFO — 292 + BART</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚌</text></svg>">
+<style>
+  :root {
+    --bg: #0b0f17;
+    --panel: #131a26;
+    --panel-2: #1a2333;
+    --line: #263349;
+    --text: #e7edf5;
+    --muted: #8b9bb4;
+    --accent: #4da3ff;
+    --samtrans: #e0004d;
+    --bart: #0099d8;
+    --green: #35d07f;
+    --amber: #ffb64d;
+    --red: #ff5d6c;
+    --radius: 16px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f2f5fa; --panel: #ffffff; --panel-2: #eef2f8; --line: #d8e0ec;
+      --text: #16202e; --muted: #5b6b83;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    padding: calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 28px);
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+
+  header { display: flex; align-items: center; gap: 10px; margin: 4px 2px 14px; }
+  header h1 { font-size: 20px; margin: 0; flex: 1; letter-spacing: .2px; }
+  header .sub { display: block; font-size: 12px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+  .iconbtn {
+    background: var(--panel); border: 1px solid var(--line); color: var(--text);
+    border-radius: 12px; width: 40px; height: 40px; font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex: none;
+  }
+  .iconbtn:active { transform: scale(.94); }
+  .iconbtn.spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .dirswitch {
+    display: grid; grid-template-columns: 1fr 44px 1fr; gap: 8px; margin-bottom: 12px;
+  }
+  .dirbtn {
+    background: var(--panel); border: 1px solid var(--line); color: var(--muted);
+    border-radius: var(--radius); padding: 12px 8px; font-size: 15px; font-weight: 600;
+    cursor: pointer; text-align: center; line-height: 1.25;
+  }
+  .dirbtn small { display: block; font-weight: 400; font-size: 11px; margin-top: 2px; }
+  .dirbtn.on { color: var(--text); border-color: var(--accent); background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--accent); }
+  .swapbtn { background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: var(--radius); font-size: 18px; cursor: pointer; }
+
+  .chips { display: flex; gap: 8px; margin: 0 2px 14px; align-items: center; flex-wrap: wrap; }
+  .chips .lbl { font-size: 12px; color: var(--muted); }
+  .chip {
+    background: var(--panel); border: 1px solid var(--line); color: var(--muted);
+    border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .chip.on { color: #fff; background: var(--samtrans); border-color: var(--samtrans); }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; }
+  .card .head { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; }
+  .badge { font-size: 11px; font-weight: 800; letter-spacing: .5px; color: #fff; border-radius: 6px; padding: 4px 8px; flex: none; }
+  .badge.samtrans { background: var(--samtrans); }
+  .badge.bart { background: var(--bart); }
+  .card .head .title { flex: 1; min-width: 0; }
+  .card .head .title b { font-size: 15px; display: block; }
+  .card .head .title span { font-size: 12px; color: var(--muted); margin-top: 1px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card .status { font-size: 12px; color: var(--muted); padding: 0 14px 10px; }
+  .card .status.err { color: var(--red); }
+
+  .row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-top: 1px solid var(--line); }
+  .row .min { font-size: 26px; font-weight: 800; min-width: 76px; font-variant-numeric: tabular-nums; }
+  .row .min small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 2px; }
+  .row .min.now { color: var(--green); }
+  .row .min.soon { color: var(--amber); }
+  .row .info { flex: 1; min-width: 0; }
+  .row .info .dest { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .info .meta { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .row .info .meta a { color: var(--accent); text-decoration: none; }
+  .tag { font-size: 10px; font-weight: 800; letter-spacing: .4px; border-radius: 5px; padding: 3px 6px; flex: none; }
+  .tag.live { color: #04120a; background: var(--green); }
+  .tag.sched { color: var(--muted); background: var(--panel-2); border: 1px solid var(--line); }
+  .row .clock { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+
+  .more { width: 100%; background: none; border: none; border-top: 1px solid var(--line); color: var(--accent); font-size: 13px; font-weight: 600; padding: 11px; cursor: pointer; }
+
+  .setup { border-color: var(--amber); }
+  .setup .head b { font-size: 15px; }
+  .setup p { font-size: 13px; color: var(--muted); margin: 0 14px 10px; line-height: 1.45; }
+  .setup p a { color: var(--accent); }
+  .setup .keyform { display: flex; gap: 8px; padding: 0 14px 14px; }
+  .setup input, .modal input {
+    flex: 1; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 10px; padding: 10px 12px; font-size: 14px; min-width: 0;
+  }
+  .btn {
+    background: var(--accent); color: #06111f; border: none; border-radius: 10px;
+    padding: 10px 16px; font-size: 14px; font-weight: 700; cursor: pointer; flex: none;
+  }
+  .btn.ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+
+  footer { text-align: center; font-size: 11px; color: var(--muted); line-height: 1.7; margin-top: 18px; }
+  footer a { color: var(--muted); }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 20px 20px 0 0;
+    width: 100%; max-width: 560px; padding: 18px 16px calc(env(safe-area-inset-bottom) + 18px);
+    max-height: 85dvh; overflow: auto;
+  }
+  .modal h2 { margin: 0 0 4px; font-size: 17px; }
+  .modal .field { margin: 14px 0; }
+  .modal label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .modal .hint { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.45; }
+  .modal .hint a { color: var(--accent); }
+  .modal .field > input { width: 100%; }
+  .modal .actions { display: flex; gap: 8px; margin-top: 16px; }
+  .modal .actions .btn { flex: 1; }
+  select {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 10px; padding: 10px 12px; font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div style="flex:1">
+      <h1>Millbrae ⇄ SFO
+        <span class="sub" id="clockNow"></span>
+      </h1>
+    </div>
+    <button class="iconbtn" id="refreshBtn" title="Refresh" aria-label="Refresh">⟳</button>
+    <button class="iconbtn" id="settingsBtn" title="Settings" aria-label="Settings">⚙︎</button>
+  </header>
+
+  <div class="dirswitch">
+    <button class="dirbtn" id="dirToSFO">Millbrae → SFO<small>catch a ride to the airport</small></button>
+    <button class="swapbtn" id="swapBtn" aria-label="Swap direction">⇅</button>
+    <button class="dirbtn" id="dirToMLBR">SFO → Millbrae<small>head back to the station</small></button>
+  </div>
+
+  <div class="chips" id="terminalChips">
+    <span class="lbl" id="chipsLbl">SFO terminal:</span>
+    <!-- chips injected -->
+  </div>
+
+  <div class="card setup" id="setupCard" style="display:none">
+    <div class="head"><span class="badge samtrans">292</span>
+      <div class="title"><b>Unlock live bus tracking</b></div>
+    </div>
+    <p>BART data below works out of the box. For SamTrans 292 <b>real‑time bus positions and exact timetables</b>, paste a free 511.org token — get one instantly at <a href="https://511.org/open-data/token" target="_blank" rel="noopener">511.org/open-data/token</a> (no credit card, just an email).</p>
+    <div class="keyform">
+      <input id="keyInput" placeholder="Paste your 511 API token" autocomplete="off">
+      <button class="btn" id="keySave">Save</button>
+    </div>
+  </div>
+
+  <div class="card" id="samtransCard">
+    <div class="head">
+      <span class="badge samtrans">292</span>
+      <div class="title"><b>SamTrans 292</b><span id="samtransSub">—</span></div>
+    </div>
+    <div class="status" id="samtransStatus"></div>
+    <div id="samtransRows"></div>
+    <button class="more" id="samtransMore" style="display:none">Show more</button>
+  </div>
+
+  <div class="card" id="bartCard">
+    <div class="head">
+      <span class="badge bart">BART</span>
+      <div class="title"><b>BART (Red Line)</b><span id="bartSub">—</span></div>
+    </div>
+    <div class="status" id="bartStatus"></div>
+    <div id="bartRows"></div>
+    <button class="more" id="bartMore" style="display:none">Show more</button>
+  </div>
+
+  <footer>
+    <span id="lastUpdated"></span><br>
+    Live data: <a href="https://511.org/open-data" target="_blank" rel="noopener">511 SF Bay</a> · <a href="https://www.bart.gov/schedules/developers/api" target="_blank" rel="noopener">BART API</a> · unofficial, times not guaranteed.<br>
+    Bus ride Millbrae TC ⇄ SFO ≈ 10 min · BART ride ≈ 5 min.
+  </footer>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2>Settings</h2>
+    <div class="field">
+      <label>511.org API token (SamTrans live data)</label>
+      <input id="setKey511" placeholder="Free token from 511.org" autocomplete="off">
+      <div class="hint">Get one at <a href="https://511.org/open-data/token" target="_blank" rel="noopener">511.org/open-data/token</a>. Stored only on this device. Free tier ≈ 60 requests/hour — this page stays well under it.</div>
+    </div>
+    <div class="field">
+      <label>BART API key</label>
+      <input id="setKeyBart" placeholder="MW9S-E7SL-26DU-VV8V">
+      <div class="hint">The default public key works fine; you can use your own from api.bart.gov.</div>
+    </div>
+    <div class="field">
+      <label>CORS fallback proxy</label>
+      <select id="setProxy">
+        <option value="auto">Auto (direct first, proxy if blocked)</option>
+        <option value="never">Never use a proxy</option>
+      </select>
+      <div class="hint">If an API doesn't allow browser requests, the page retries via corsproxy.io. Your API token is visible to that proxy when used.</div>
+    </div>
+    <div class="field">
+      <label>Cached data</label>
+      <button class="btn ghost" id="clearCache" style="width:100%">Clear cached stop &amp; schedule data</button>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="modalClose">Close</button>
+      <button class="btn" id="modalSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ============================== config ============================== */
+const LS = {
+  get k() { return 'mlbr292.'; },
+  read(name, dflt) { try { const v = localStorage.getItem(this.k + name); return v === null ? dflt : JSON.parse(v); } catch (e) { return dflt; } },
+  write(name, val) { try { localStorage.setItem(this.k + name, JSON.stringify(val)); } catch (e) {} },
+  del(name) { try { localStorage.removeItem(this.k + name); } catch (e) {} },
+};
+
+const DEFAULT_BART_KEY = 'MW9S-E7SL-26DU-VV8V';
+const SM_LINES = ['292', 'SFO', '398'];       // candidate SamTrans lines Millbrae<->SFO; filtered to what's live
+const PT_TZ = 'America/Los_Angeles';
+
+// Fallback stop codes (verified against samtrans.com stop pages, July 2026).
+// Runtime discovery via the 511 "patterns" API overrides these when possible.
+const FALLBACK = {
+  millbraeTC: { code: '336623', name: 'Millbrae Transit Center' },
+  terminals: [
+    { key: 'A',  code: '335637', name: "Int'l Terminal A (lower level)" },
+    { key: '2',  code: '335503', name: 'Terminal 2 (lower level)' },
+    { key: '3',  code: '335162', name: 'Terminal 3 (lower level)' },
+    { key: 'G',  code: '335620', name: "Int'l Terminal G (lower level)" },
+  ],
+};
+
+const state = {
+  key511: LS.read('key511', ''),
+  keyBart: LS.read('keyBart', DEFAULT_BART_KEY),
+  proxyMode: LS.read('proxyMode', 'auto'),
+  direction: LS.read('direction', 'toSFO'),   // toSFO | toMLBR
+  terminal: LS.read('terminal', '2'),
+  stops: LS.read('stopsV2', null),            // discovered stop config {millbraeTC:{...}, terminals:[...], dirToSFO, dirToMLBR, ts}
+  showAllSam: false,
+  showAllBart: false,
+  sam: { live: [], sched: [], err: '', sub: '' },
+  bart: { live: [], sched: [], err: '', sub: '' },
+  lastFetch: 0,
+  fetching: false,
+};
+
+/* ============================== time helpers ============================== */
+const fmtClock = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: PT_TZ });
+const fmtClockS = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', timeZone: PT_TZ, weekday: 'short' });
+
+function ptParts(d = new Date()) {
+  const p = new Intl.DateTimeFormat('en-CA', {
+    timeZone: PT_TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).formatToParts(d).reduce((a, x) => (a[x.type] = x.value, a), {});
+  return { date: `${p.year}-${p.month}-${p.day}`, minsSinceMidnight: (+p.hour % 24) * 60 + (+p.minute) };
+}
+
+// "6:05 AM" -> minutes since midnight, else null
+function parse12h(s) {
+  const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec((s || '').trim());
+  if (!m) return null;
+  let h = +m[1] % 12;
+  if (/pm/i.test(m[3])) h += 12;
+  return h * 60 + (+m[2]);
+}
+
+function minsFromNowISO(iso) {
+  const t = Date.parse(iso);
+  if (isNaN(t)) return null;
+  return Math.round((t - Date.now()) / 60000);
+}
+
+function clockFromISO(iso) {
+  const t = Date.parse(iso);
+  return isNaN(t) ? '' : fmtClock.format(new Date(t));
+}
+
+function clockFromMins(mins) { // minutes since midnight PT -> "6:05 AM"
+  const h24 = Math.floor(mins / 60) % 24, mm = String(mins % 60).padStart(2, '0');
+  const h12 = ((h24 + 11) % 12) + 1;
+  return `${h12}:${mm} ${h24 < 12 ? 'AM' : 'PM'}`;
+}
+
+/* ============================== fetch w/ CORS fallback ============================== */
+async function fetchText(url, hostTag) {
+  const modeKey = 'cors.' + hostTag;
+  const tryDirect = async () => {
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new HttpError(r.status);
+    return r.text();
+  };
+  const tryProxy = async () => {
+    const r = await fetch('https://corsproxy.io/?url=' + encodeURIComponent(url), { cache: 'no-store' });
+    if (!r.ok) throw new HttpError(r.status);
+    return r.text();
+  };
+  const remembered = LS.read(modeKey, 'direct');
+  const order = (state.proxyMode === 'never')
+    ? [['direct', tryDirect]]
+    : (remembered === 'proxy' ? [['proxy', tryProxy], ['direct', tryDirect]] : [['direct', tryDirect], ['proxy', tryProxy]]);
+  let lastErr;
+  for (const [mode, fn] of order) {
+    try {
+      const t = await fn();
+      LS.write(modeKey, mode);
+      return t;
+    } catch (e) {
+      lastErr = e;
+      if (e instanceof HttpError && e.status !== 0) throw e; // real HTTP error: don't mask via proxy
+    }
+  }
+  throw lastErr || new Error('network');
+}
+class HttpError extends Error {
+  constructor(status) { super('HTTP ' + status); this.status = status; }
+}
+async function fetchJSON(url, hostTag) {
+  const t = await fetchText(url, hostTag);
+  return JSON.parse(t.replace(/^\uFEFF/, '')); // 511 responses carry a BOM
+}
+
+/* ============================== 511 (SamTrans) ============================== */
+const API511 = 'https://api.511.org/transit';
+
+function cache511(name, maxAgeMs) {
+  const c = LS.read('c511.' + name, null);
+  if (c && (Date.now() - c.ts) < maxAgeMs) return c.data;
+  return null;
+}
+function cache511Set(name, data) { LS.write('c511.' + name, { ts: Date.now(), data }); }
+
+// Which SamTrans lines actually exist right now (292 always; "SFO"/"398" if running)
+async function samLines() {
+  const cached = cache511('lines', 7 * 864e5);
+  if (cached) return cached;
+  try {
+    const j = await fetchJSON(`${API511}/lines?api_key=${encodeURIComponent(state.key511)}&operator_id=SM&format=json`, '511');
+    const ids = (Array.isArray(j) ? j : []).map(l => String(l.Id || l.id || '')).filter(Boolean);
+    const mine = SM_LINES.filter(x => ids.includes(x));
+    const out = mine.length ? mine : ['292'];
+    cache511Set('lines', out);
+    return out;
+  } catch (e) { return ['292']; }
+}
+
+// Discover boarding stops + direction refs from the 292 journey patterns.
+async function discoverStops() {
+  if (state.stops && (Date.now() - state.stops.ts) < 7 * 864e5) return state.stops;
+  let discovered = null;
+  try {
+    const j = await fetchJSON(`${API511}/patterns?api_key=${encodeURIComponent(state.key511)}&operator_id=SM&line_id=292&format=json`, '511');
+    const patterns = (j && j.journeyPatterns) || (j && j.JourneyPatterns) || [];
+    const parsed = [];
+    for (const p of patterns) {
+      const seq = ((p.PointsInSequence || {}).StopPointInJourneyPattern) || [];
+      const pts = seq.map(s => ({
+        code: String(s.ScheduledStopPointRef || s.stopPointRef || ''),
+        name: String(s.Name || s.name || ''),
+        order: +(s.Order || 0),
+      })).sort((a, b) => a.order - b.order);
+      if (pts.length) parsed.push({ dir: String(p.DirectionRef || ''), pts });
+    }
+    const isMLBR = n => /millbrae transit center/i.test(n);
+    const isSFO = n => /sfo airport terminal/i.test(n);
+    let toSFO = null, toMLBR = null;
+    for (const p of parsed) {
+      const iM = p.pts.findIndex(x => isMLBR(x.name));
+      const iS = p.pts.findIndex(x => isSFO(x.name));
+      if (iM < 0 || iS < 0) continue;
+      if (iM < iS && !toSFO) toSFO = p;
+      if (iS < iM && !toMLBR) toMLBR = p;
+    }
+    if (toSFO && toMLBR) {
+      const term = dirPts => dirPts.pts.filter(x => isSFO(x.name)).map(x => ({
+        key: (x.name.match(/terminal\s+([A-Z0-9]+)/i) || [])[1] || x.name,
+        code: x.code, name: x.name,
+      }));
+      discovered = {
+        ts: Date.now(),
+        dirToSFO: toSFO.dir, dirToMLBR: toMLBR.dir,
+        millbraeTC: toSFO.pts[toSFO.pts.findIndex(x => isMLBR(x.name))],
+        terminals: term(toMLBR).length ? term(toMLBR) : FALLBACK.terminals,
+      };
+    }
+  } catch (e) { /* fall through to fallback */ }
+  if (!discovered) {
+    discovered = { ts: Date.now(), dirToSFO: null, dirToMLBR: null, millbraeTC: FALLBACK.millbraeTC, terminals: FALLBACK.terminals };
+  }
+  state.stops = discovered;
+  LS.write('stopsV2', discovered);
+  return discovered;
+}
+
+function currentTerminal() {
+  const stops = state.stops || { terminals: FALLBACK.terminals };
+  return stops.terminals.find(t => String(t.key) === String(state.terminal)) || stops.terminals[0];
+}
+
+function samBoardStop() {
+  const stops = state.stops || { millbraeTC: FALLBACK.millbraeTC, terminals: FALLBACK.terminals };
+  return state.direction === 'toSFO' ? stops.millbraeTC : currentTerminal();
+}
+
+// direction filter for a stop visit
+function samDirectionOK(dirRef, destName, line) {
+  const stops = state.stops || {};
+  const want = state.direction === 'toSFO' ? stops.dirToSFO : stops.dirToMLBR;
+  // strict DirectionRef match only for 292 (the refs were learned from 292's patterns)
+  if (want && dirRef && line === '292') return String(dirRef) === String(want);
+  const d = destName || '';
+  return state.direction === 'toSFO'
+    ? /san francisco|sf\b|transit center|airport|sfo/i.test(d)
+    : /hillsdale|san mateo|millbrae|caltrain/i.test(d);
+}
+
+async function loadSamLive(lines) {
+  const stop = samBoardStop();
+  const url = `${API511}/StopMonitoring?api_key=${encodeURIComponent(state.key511)}&agency=SM&stopcode=${encodeURIComponent(stop.code)}&format=json`;
+  const j = await fetchJSON(url, '511');
+  const sd = ((j.Siri || j).ServiceDelivery) || {};
+  const smd = Array.isArray(sd.StopMonitoringDelivery) ? sd.StopMonitoringDelivery[0] : (sd.StopMonitoringDelivery || {});
+  const visits = smd.MonitoredStopVisit || [];
+  const out = [];
+  for (const v of visits) {
+    const mvj = v.MonitoredVehicleJourney || {};
+    const line = String(mvj.LineRef || '');
+    if (!lines.includes(line)) continue;
+    if (!samDirectionOK(mvj.DirectionRef, mvj.DestinationName, line)) continue;
+    const call = mvj.MonitoredCall || {};
+    const iso = call.ExpectedDepartureTime || call.ExpectedArrivalTime || call.AimedDepartureTime || call.AimedArrivalTime;
+    const mins = minsFromNowISO(iso);
+    if (mins === null || mins < -1 || mins > 180) continue;
+    const loc = mvj.VehicleLocation || {};
+    const lat = parseFloat(loc.Latitude), lon = parseFloat(loc.Longitude);
+    out.push({
+      mins: Math.max(0, mins),
+      clock: clockFromISO(iso),
+      dest: `${line} · to ${mvj.DestinationName || (state.direction === 'toSFO' ? 'San Francisco' : 'Hillsdale')}`,
+      live: !!(call.ExpectedDepartureTime || call.ExpectedArrivalTime),
+      map: (isFinite(lat) && isFinite(lon)) ? `https://maps.google.com/?q=${lat},${lon}` : null,
+    });
+  }
+  out.sort((a, b) => a.mins - b.mins);
+  state.sam.live = out;
+  state.sam.sub = `from ${stop.name}` + (state.direction === 'toSFO' ? ' · get off at your terminal' : ' · get off at Millbrae Transit Center');
+}
+
+async function loadSamSched(lines) {
+  const stop = samBoardStop();
+  const day = ptParts().date;
+  const ck = `tt.${stop.code}.${day}`;
+  let visits = cache511(ck, 6 * 36e5);
+  if (!visits) {
+    const url = `${API511}/stoptimetable?api_key=${encodeURIComponent(state.key511)}&OperatorRef=SM&MonitoringRef=${encodeURIComponent(stop.code)}&format=json`;
+    const j = await fetchJSON(url, '511');
+    const raw = (((j.Siri || j).ServiceDelivery || {}).StopTimetableDelivery || {}).TimetabledStopVisit || [];
+    visits = raw.map(v => {
+      const tvj = v.TargetedVehicleJourney || {};
+      const call = tvj.TargetedCall || {};
+      return {
+        line: String(tvj.LineRef || ''),
+        dir: String(tvj.DirectionRef || ''),
+        dest: tvj.DestinationName || '',
+        iso: call.AimedDepartureTime || call.AimedArrivalTime || '',
+      };
+    });
+    cache511Set(ck, visits);
+  }
+  const out = [];
+  for (const v of visits) {
+    if (!lines.includes(v.line)) continue;
+    if (!samDirectionOK(v.dir, v.dest)) continue;
+    const mins = minsFromNowISO(v.iso);
+    if (mins === null || mins < 2) continue;
+    out.push({ mins, clock: clockFromISO(v.iso), dest: `${v.line} · to ${v.dest || '—'}`, live: false });
+  }
+  out.sort((a, b) => a.mins - b.mins);
+  // hide schedule entries that duplicate a live prediction (within 4 min of one)
+  state.sam.sched = out.filter(s => !state.sam.live.some(l => Math.abs(l.mins - s.mins) <= 4));
+}
+
+async function refreshSamTrans() {
+  if (!state.key511) {
+    state.sam.err = '';
+    state.sam.note = 'Live positions and today’s exact timetable appear once you add the free 511 token above.';
+    state.sam.live = []; state.sam.sched = [];
+    state.sam.sub = state.direction === 'toSFO'
+      ? 'from Millbrae Transit Center · runs about every 30–60 min, ~5am–1am'
+      : `from SFO terminals (lower level) · runs about every 30–60 min, ~5am–1am`;
+    return;
+  }
+  try {
+    await discoverStops();
+    const lines = await samLines();
+    await loadSamLive(lines);
+    try { await loadSamSched(lines); } catch (e) { state.sam.sched = []; }
+    state.sam.err = ''; state.sam.note = '';
+  } catch (e) {
+    state.sam.live = []; state.sam.sched = []; state.sam.note = '';
+    state.sam.err = (e instanceof HttpError && e.status === 401) ? 'Invalid 511 token — check it in ⚙︎ settings.'
+      : (e instanceof HttpError && e.status === 429) ? '511 rate limit hit — will retry shortly.'
+      : 'Couldn’t reach 511.org — will retry.';
+  }
+}
+
+/* ============================== BART ============================== */
+const APIBART = 'https://api.bart.gov/api';
+
+async function refreshBart() {
+  const orig = state.direction === 'toSFO' ? 'MLBR' : 'SFIA';
+  state.bart.sub = state.direction === 'toSFO'
+    ? 'from Millbrae station · next stop SFO (~5 min)'
+    : 'from SFO station (Int’l Terminal, level 3) · next stop Millbrae';
+  try {
+    const j = await fetchJSON(`${APIBART}/etd.aspx?cmd=etd&orig=${orig}&key=${encodeURIComponent(state.keyBart)}&json=y`, 'bart');
+    const st = ((j.root || {}).station || [])[0] || {};
+    const etds = Array.isArray(st.etd) ? st.etd : (st.etd ? [st.etd] : []);
+    const out = [];
+    for (const e of etds) {
+      // Millbrae is a terminus: every departure heads through SFO.
+      // At SFO, only keep Millbrae-bound trains.
+      if (orig === 'SFIA' && String(e.abbreviation).toUpperCase() !== 'MLBR') continue;
+      const ests = Array.isArray(e.estimate) ? e.estimate : [e.estimate].filter(Boolean);
+      for (const est of ests) {
+        const mins = est.minutes === 'Leaving' ? 0 : parseInt(est.minutes, 10);
+        if (isNaN(mins)) continue;
+        out.push({
+          mins,
+          clock: fmtClock.format(new Date(Date.now() + mins * 60000)),
+          dest: `to ${e.destination}${est.length ? ` · ${est.length} cars` : ''}`,
+          live: true,
+          delayed: +est.delay > 60,
+        });
+      }
+    }
+    out.sort((a, b) => a.mins - b.mins);
+    state.bart.live = out;
+    state.bart.err = '';
+  } catch (e) {
+    state.bart.live = [];
+    state.bart.err = 'Couldn’t reach BART API — will retry.';
+  }
+  try { await loadBartSched(orig); } catch (e) { state.bart.sched = []; }
+}
+
+async function loadBartSched(orig) {
+  const day = ptParts().date;
+  const ck = `bart.${orig}.${day}`;
+  let items = cache511(ck, 6 * 36e5); // reuse cache helper
+  if (!items) {
+    const j = await fetchJSON(`${APIBART}/sched.aspx?cmd=stnsched&orig=${orig}&key=${encodeURIComponent(state.keyBart)}&json=y`, 'bart');
+    const st = ((j.root || {}).station || [])[0] || {};
+    const raw = Array.isArray(st.item) ? st.item : (st.item ? [st.item] : []);
+    items = raw.map(it => ({
+      head: String(it['@trainHeadStation'] || it.trainHeadStation || ''),
+      time: String(it['@origTime'] || it.origTime || ''),
+      line: String(it['@line'] || it.line || ''),
+    }));
+    cache511Set(ck, items);
+  }
+  const now = ptParts().minsSinceMidnight;
+  const out = [];
+  for (const it of items) {
+    if (orig === 'SFIA' && !/millbrae|mlbr/i.test(it.head)) continue;
+    const t = parse12h(it.time);
+    if (t === null) continue;
+    const mins = t - now;
+    if (mins < 2 || mins > 21 * 60) continue;
+    out.push({ mins, clock: clockFromMins(t), dest: `to ${it.head}`, live: false });
+  }
+  out.sort((a, b) => a.mins - b.mins);
+  state.bart.sched = out.filter(s => !state.bart.live.some(l => Math.abs(l.mins - s.mins) <= 3));
+}
+
+/* ============================== rendering ============================== */
+const $ = id => document.getElementById(id);
+
+function rowHTML(r) {
+  const minClass = r.mins <= 1 ? 'now' : (r.mins <= 5 ? 'soon' : '');
+  const minTxt = r.mins <= 0 ? 'Now' : `${r.mins}<small>min</small>`;
+  const tag = r.live ? '<span class="tag live">LIVE</span>' : '<span class="tag sched">SCHED</span>';
+  const map = r.map ? ` · <a href="${r.map}" target="_blank" rel="noopener">bus on map</a>` : '';
+  const delayed = r.delayed ? ' · <span style="color:var(--amber)">delayed</span>' : '';
+  return `<div class="row">
+    <div class="min ${minClass}">${minTxt}</div>
+    <div class="info"><div class="dest">${escapeHTML(r.dest)}</div><div class="meta">${tag} ${delayed}${map}</div></div>
+    <div class="clock">${r.clock || ''}</div>
+  </div>`;
+}
+function escapeHTML(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+function renderCard(prefix, data, showAll) {
+  const rows = [...data.live, ...data.sched];
+  const visible = showAll ? rows.slice(0, 24) : rows.slice(0, 5);
+  $(prefix + 'Rows').innerHTML = visible.map(rowHTML).join('') ||
+    ((data.err || data.note) ? '' : '<div class="row"><div class="info"><div class="meta">No upcoming departures found right now.</div></div></div>');
+  const st = $(prefix + 'Status');
+  const msg = data.err || data.note || '';
+  st.textContent = msg;
+  st.className = 'status' + (data.err ? ' err' : '');
+  st.style.display = msg ? '' : 'none';
+  $(prefix + 'Sub').textContent = data.sub || '—';
+  const moreBtn = $(prefix + 'More');
+  moreBtn.style.display = rows.length > 5 ? '' : 'none';
+  moreBtn.textContent = showAll ? 'Show fewer' : `Show more (${rows.length - visible.length} later today)`;
+}
+
+function render() {
+  $('dirToSFO').classList.toggle('on', state.direction === 'toSFO');
+  $('dirToMLBR').classList.toggle('on', state.direction === 'toMLBR');
+  renderTerminalChips();
+  $('setupCard').style.display = state.key511 ? 'none' : '';
+  renderCard('samtrans', state.sam, state.showAllSam);
+  renderCard('bart', state.bart, state.showAllBart);
+  $('lastUpdated').textContent = state.lastFetch
+    ? `Updated ${fmtClock.format(new Date(state.lastFetch))} PT · auto-refreshes while open`
+    : 'Loading…';
+  $('clockNow').textContent = fmtClockS.format(new Date()) + ' PT';
+}
+
+function renderTerminalChips() {
+  const holder = $('terminalChips');
+  const terms = (state.stops || FALLBACK).terminals || FALLBACK.terminals;
+  const lbl = state.direction === 'toMLBR' ? 'Board at terminal:' : 'Going to terminal:';
+  let html = `<span class="lbl">${lbl}</span>`;
+  for (const t of terms) {
+    html += `<button class="chip ${String(t.key) === String(state.terminal) ? 'on' : ''}" data-term="${escapeHTML(t.key)}">${escapeHTML(String(t.key))}</button>`;
+  }
+  holder.innerHTML = html;
+  holder.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
+    state.terminal = b.dataset.term;
+    LS.write('terminal', state.terminal);
+    if (state.direction === 'toMLBR') refresh(true); else render();
+  }));
+}
+
+/* ============================== refresh loop ============================== */
+async function refresh(force) {
+  if (state.fetching) return;
+  state.fetching = true;
+  $('refreshBtn').classList.add('spin');
+  try {
+    await Promise.all([refreshSamTrans(), refreshBart()]);
+    state.lastFetch = Date.now();
+  } finally {
+    state.fetching = false;
+    $('refreshBtn').classList.remove('spin');
+    render();
+  }
+}
+
+let tickTimer, samTimer, bartTimer;
+function startTimers() {
+  clearInterval(tickTimer); clearInterval(samTimer); clearInterval(bartTimer);
+  tickTimer = setInterval(render, 15000);
+  bartTimer = setInterval(() => { if (!document.hidden) refreshBart().then(render); }, 60000);
+  samTimer = setInterval(() => { if (!document.hidden && state.key511) refreshSamTrans().then(render); }, 150000);
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && Date.now() - state.lastFetch > 60000) refresh(true);
+});
+
+/* ============================== UI wiring ============================== */
+function setDirection(d) {
+  if (state.direction === d) return;
+  state.direction = d;
+  LS.write('direction', d);
+  state.showAllSam = state.showAllBart = false;
+  state.sam.live = []; state.sam.sched = [];
+  state.bart.live = []; state.bart.sched = [];
+  render();
+  refresh(true);
+}
+$('dirToSFO').addEventListener('click', () => setDirection('toSFO'));
+$('dirToMLBR').addEventListener('click', () => setDirection('toMLBR'));
+$('swapBtn').addEventListener('click', () => setDirection(state.direction === 'toSFO' ? 'toMLBR' : 'toSFO'));
+$('refreshBtn').addEventListener('click', () => refresh(true));
+$('samtransMore').addEventListener('click', () => { state.showAllSam = !state.showAllSam; render(); });
+$('bartMore').addEventListener('click', () => { state.showAllBart = !state.showAllBart; render(); });
+
+$('keySave').addEventListener('click', () => {
+  const v = $('keyInput').value.trim();
+  if (!v) return;
+  state.key511 = v;
+  LS.write('key511', v);
+  refresh(true);
+});
+
+$('settingsBtn').addEventListener('click', () => {
+  $('setKey511').value = state.key511;
+  $('setKeyBart').value = state.keyBart;
+  $('setProxy').value = state.proxyMode;
+  $('modalBg').classList.add('open');
+});
+$('modalClose').addEventListener('click', () => $('modalBg').classList.remove('open'));
+$('modalBg').addEventListener('click', e => { if (e.target === $('modalBg')) $('modalBg').classList.remove('open'); });
+$('modalSave').addEventListener('click', () => {
+  state.key511 = $('setKey511').value.trim();
+  state.keyBart = $('setKeyBart').value.trim() || DEFAULT_BART_KEY;
+  state.proxyMode = $('setProxy').value;
+  LS.write('key511', state.key511);
+  LS.write('keyBart', state.keyBart);
+  LS.write('proxyMode', state.proxyMode);
+  $('modalBg').classList.remove('open');
+  refresh(true);
+});
+$('clearCache').addEventListener('click', () => {
+  const keep = ['key511', 'keyBart', 'proxyMode', 'direction', 'terminal'];
+  Object.keys(localStorage).filter(k => k.startsWith(LS.k)).forEach(k => {
+    if (!keep.includes(k.slice(LS.k.length))) localStorage.removeItem(k);
+  });
+  state.stops = null;
+  refresh(true);
+});
+
+render();
+refresh(true);
+startTimers();
+</script>
+</body>
+</html>
