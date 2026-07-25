@@ -1,0 +1,7 @@
+name = "millbrae-sfo-relay"
+main = "worker.js"
+compatibility_date = "2026-07-01"
+
+# Secrets (never commit these — this repo is public):
+#   npx wrangler secret put TOKEN_511   # your 511.org token
+#   npx wrangler secret put BART_KEY    # optional, defaults to BART's public key
