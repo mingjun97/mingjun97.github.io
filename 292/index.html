@@ -75,12 +75,12 @@
   }
   .chip.on { color: #fff; background: var(--samtrans); border-color: var(--samtrans); }
   .chip.on.now { background: var(--accent); border-color: var(--accent); color: #06111f; }
-  .timeinput {
-    background: var(--panel); border: 1px solid var(--line); color: var(--text);
-    border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 600;
-    font-family: inherit; -webkit-appearance: none; appearance: none;
+  .timechip { position: relative; overflow: hidden; }
+  .timechip input {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    opacity: 0; border: 0; padding: 0; font-family: inherit;
   }
-  .timeinput.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .timechip.on { color: #06111f; background: var(--accent); border-color: var(--accent); }
 
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; }
   .card .head { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; }
@@ -169,7 +169,10 @@
   <div class="chips">
     <span class="lbl">Depart:</span>
     <button class="chip now on" id="planNow">Now</button>
-    <input type="time" id="planTimeInput" class="timeinput" aria-label="Planned departure time">
+    <label class="chip timechip" id="planPickWrap">
+      <span id="planPickLabel">Pick time ▾</span>
+      <input type="time" id="planTimeInput" aria-label="Planned departure time">
+    </label>
     <span class="lbl" id="planHint"></span>
   </div>
 
@@ -501,13 +504,20 @@ function lineLabel(ref) { return String(ref || '').replace(/^.*[:_]/, ''); }
 
 /* -------- plan-ahead: only show departures at/after a chosen time -------- */
 function planActive() { return !!(state.plan && state.plan !== 'now'); }
+// minutes-from-now of the planned time; null = no plan or time already passed
+function planTargetRel() {
+  if (!planActive()) return null;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(state.plan);
+  if (!m) return null;
+  const target = (+m[1]) * 60 + (+m[2]);
+  let rel = target - ptParts().minsSinceMidnight;
+  if (rel <= 0 && target < 6 * 60) rel += 1440; // 12:00–5:59 AM means tonight, after midnight
+  return rel <= 0 ? null : rel;
+}
 // minimum "minutes from now" a departure must have to be shown
 function planMinMins() {
-  if (!planActive()) return 2;
-  const m = /^(\d{1,2}):(\d{2})$/.exec(state.plan);
-  if (!m) return 2;
-  const rel = (+m[1]) * 60 + (+m[2]) - ptParts().minsSinceMidnight;
-  return rel <= 0 ? 2 : rel; // a time already passed behaves like "now"
+  const rel = planTargetRel();
+  return rel === null ? 2 : rel; // a passed time behaves like "now"
 }
 
 // tolerant line-ref compare: "292", "SM:292", "292_MERGED" all count as 292
@@ -781,16 +791,16 @@ function render() {
   $('dirToSFO').classList.toggle('on', state.direction === 'toSFO');
   $('dirToMLBR').classList.toggle('on', state.direction === 'toMLBR');
   $('planNow').classList.toggle('on', !planActive());
-  $('planTimeInput').classList.toggle('active', planActive());
-  let planHint = '';
-  if (planActive()) {
-    const m = /^(\d{1,2}):(\d{2})$/.exec(state.plan);
-    const target = m ? (+m[1]) * 60 + (+m[2]) : 0;
-    planHint = target <= ptParts().minsSinceMidnight
-      ? 'time passed — showing from now'
-      : `departures after ${clockFromMins(target)}`;
-  }
-  $('planHint').textContent = planHint;
+  const planRel = planTargetRel();
+  $('planPickWrap').classList.toggle('on', planActive());
+  const planM = /^(\d{1,2}):(\d{2})$/.exec(state.plan || '');
+  $('planPickLabel').textContent = planActive() && planM
+    ? clockFromMins((+planM[1]) * 60 + (+planM[2])) : 'Pick time ▾';
+  const planWrapped = planActive() && planM && planRel !== null &&
+    ((+planM[1]) * 60 + (+planM[2]) - ptParts().minsSinceMidnight) <= 0;
+  $('planHint').textContent = !planActive() ? ''
+    : planRel === null ? 'time passed — showing from now'
+    : planWrapped ? 'tonight, after midnight' : '';
   renderTerminalChips();
   $('setupCard').style.display = samEnabled() ? 'none' : '';
   renderCard('samtrans', state.sam, state.showAllSam);
