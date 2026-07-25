@@ -719,7 +719,9 @@ const $ = id => document.getElementById(id);
 
 function rowHTML(r) {
   const minClass = r.mins <= 1 ? 'now' : (r.mins <= 5 ? 'soon' : '');
-  const minTxt = r.mins <= 0 ? 'Now' : `${r.mins}<small>min</small>`;
+  const minTxt = r.mins <= 0 ? 'Now'
+    : r.mins < 60 ? `${r.mins}<small>min</small>`
+    : `${Math.floor(r.mins / 60)}<small>h</small>&hairsp;${String(r.mins % 60).padStart(2, '0')}<small>m</small>`;
   const tag = r.live ? '<span class="tag live">LIVE</span>' : '<span class="tag sched">SCHED</span>';
   const map = r.map ? ` · <a href="${r.map}" target="_blank" rel="noopener">bus on map</a>` : '';
   const delayed = r.delayed ? ' · <span style="color:var(--amber)">delayed</span>' : '';
