@@ -74,6 +74,13 @@
     border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
   }
   .chip.on { color: #fff; background: var(--samtrans); border-color: var(--samtrans); }
+  .chip.on.now { background: var(--accent); border-color: var(--accent); color: #06111f; }
+  .timeinput {
+    background: var(--panel); border: 1px solid var(--line); color: var(--text);
+    border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 600;
+    font-family: inherit; -webkit-appearance: none; appearance: none;
+  }
+  .timeinput.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; }
   .card .head { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; }
@@ -157,6 +164,13 @@
     <button class="dirbtn" id="dirToSFO">Millbrae → SFO<small>catch a ride to the airport</small></button>
     <button class="swapbtn" id="swapBtn" aria-label="Swap direction">⇅</button>
     <button class="dirbtn" id="dirToMLBR">SFO → Millbrae<small>head back to the station</small></button>
+  </div>
+
+  <div class="chips">
+    <span class="lbl">Depart:</span>
+    <button class="chip now on" id="planNow">Now</button>
+    <input type="time" id="planTimeInput" class="timeinput" aria-label="Planned departure time">
+    <span class="lbl" id="planHint"></span>
   </div>
 
   <div class="chips" id="terminalChips">
@@ -278,6 +292,7 @@ const state = {
   proxyMode: LS.read('proxyMode', 'auto'),
   direction: LS.read('direction', 'toSFO'),   // toSFO | toMLBR
   terminal: LS.read('terminal', '2'),
+  plan: 'now',                                // 'now' or 'HH:MM' (PT) — resets each visit
   showAllSam: false,
   showAllBart: false,
   sam: { live: [], sched: [], err: '', note: '', sub: '', boardStop: null },
@@ -484,6 +499,17 @@ function classifyTrip(destName, dirRef) {
 function wantedDir() { return state.direction === 'toSFO' ? 'NB' : 'SB'; }
 function lineLabel(ref) { return String(ref || '').replace(/^.*[:_]/, ''); }
 
+/* -------- plan-ahead: only show departures at/after a chosen time -------- */
+function planActive() { return !!(state.plan && state.plan !== 'now'); }
+// minimum "minutes from now" a departure must have to be shown
+function planMinMins() {
+  if (!planActive()) return 2;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(state.plan);
+  if (!m) return 2;
+  const rel = (+m[1]) * 60 + (+m[2]) - ptParts().minsSinceMidnight;
+  return rel <= 0 ? 2 : rel; // a time already passed behaves like "now"
+}
+
 // tolerant line-ref compare: "292", "SM:292", "292_MERGED" all count as 292
 function lineMatch(lines, ref) {
   const r = String(ref || '').toUpperCase();
@@ -515,7 +541,7 @@ async function probeStop(stop, lines) {
     const call = mvj.MonitoredCall || {};
     const iso = call.ExpectedDepartureTime || call.ExpectedArrivalTime || call.AimedDepartureTime || call.AimedArrivalTime;
     const mins = minsFromNowISO(iso);
-    if (mins === null || mins < -1 || mins > 240) continue;
+    if (mins === null || mins < (planActive() ? planMinMins() : -1) || mins > 240) continue;
     const loc = mvj.VehicleLocation || {};
     const lat = parseFloat(loc.Latitude), lon = parseFloat(loc.Longitude);
     matched.push({
@@ -551,7 +577,7 @@ async function loadSamLive(lines) {
   const boardStop = chosen || list[0];
   state.sam.boardStop = boardStop;
   state.sam.sub = `from ${boardStop.name}` + (state.direction === 'toSFO' ? ' · get off at your terminal' : ' · get off at Millbrae Transit Center');
-  if (!rows.length) {
+  if (!rows.length && !planActive()) {
     const seen = probed.flatMap(p => p.others || []);
     const summary = [...new Set(seen)].slice(0, 3).join(', ');
     state.sam.note = `No live 292 predictions right now (checked ${probed.length} stop${probed.length > 1 ? 's' : ''} at ${state.direction === 'toSFO' ? 'Millbrae TC' : 'Terminal ' + state.terminal})` +
@@ -602,7 +628,7 @@ async function loadSamSched(lines) {
       const cls = classifyTrip(v.dest, v.dir);
       if (cls !== wantedDir() && cls !== '?') continue;
       const mins = minsFromNowISO(v.iso);
-      if (mins === null || mins < 2) continue;
+      if (mins === null || mins < planMinMins()) continue;
       out.push({ mins, clock: clockFromISO(v.iso), dest: `${lineLabel(v.line)} · to ${v.dest || '—'}${cls === '?' ? ' (?)' : ''}`, live: false });
     }
     attempts.push({ stop: stop.name, code: stop.code, rows: out.length, rawCount: visits.length,
@@ -662,6 +688,7 @@ async function refreshBart() {
       for (const est of ests) {
         const mins = est.minutes === 'Leaving' ? 0 : parseInt(est.minutes, 10);
         if (isNaN(mins)) continue;
+        if (planActive() && mins < planMinMins() - 1) continue;
         out.push({
           mins,
           clock: fmtClock.format(new Date(Date.now() + mins * 60000)),
@@ -706,8 +733,9 @@ async function loadBartSched(orig) {
     if (orig === 'SFIA' && !/millbrae|mlbr/i.test(it.head)) continue;
     const t = parse12h(it.time);
     if (t === null) continue;
-    const mins = t - now;
-    if (mins < 2 || mins > 21 * 60) continue;
+    let mins = t - now;
+    if (mins < -120) mins += 1440; // after-midnight trips belong to today's service day
+    if (mins < planMinMins() || mins > 21 * 60) continue;
     out.push({ mins, clock: clockFromMins(t), dest: `to ${it.head}`, live: false });
   }
   out.sort((a, b) => a.mins - b.mins);
@@ -752,6 +780,17 @@ function renderCard(prefix, data, showAll) {
 function render() {
   $('dirToSFO').classList.toggle('on', state.direction === 'toSFO');
   $('dirToMLBR').classList.toggle('on', state.direction === 'toMLBR');
+  $('planNow').classList.toggle('on', !planActive());
+  $('planTimeInput').classList.toggle('active', planActive());
+  let planHint = '';
+  if (planActive()) {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(state.plan);
+    const target = m ? (+m[1]) * 60 + (+m[2]) : 0;
+    planHint = target <= ptParts().minsSinceMidnight
+      ? 'time passed — showing from now'
+      : `departures after ${clockFromMins(target)}`;
+  }
+  $('planHint').textContent = planHint;
   renderTerminalChips();
   $('setupCard').style.display = samEnabled() ? 'none' : '';
   renderCard('samtrans', state.sam, state.showAllSam);
@@ -817,6 +856,17 @@ function setDirection(d) {
   render();
   refresh(true);
 }
+$('planTimeInput').addEventListener('change', () => {
+  state.plan = $('planTimeInput').value || 'now';
+  render();
+  refresh(true);
+});
+$('planNow').addEventListener('click', () => {
+  state.plan = 'now';
+  $('planTimeInput').value = '';
+  render();
+  refresh(true);
+});
 $('dirToSFO').addEventListener('click', () => setDirection('toSFO'));
 $('dirToMLBR').addEventListener('click', () => setDirection('toMLBR'));
 $('swapBtn').addEventListener('click', () => setDirection(state.direction === 'toSFO' ? 'toMLBR' : 'toSFO'));
