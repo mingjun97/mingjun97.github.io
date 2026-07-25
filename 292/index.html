@@ -441,7 +441,7 @@ async function stopsIndex() {
   return idx;
 }
 
-const MLBR_RX = /millbrae\s*(transit\s*center|bart|intermodal|station)/i;
+const MLBR_RX = /millbrae\s*(transit\s*center|bart|intermodal|station)|el camino\s*real\s*[&/+].*millbrae|millbrae\s*ave.*el camino/i;
 function terminalStopRx(key) { return new RegExp('(sfo|airport).*terminal\\s*' + key + '|terminal\\s*' + key + '.*(sfo|airport)', 'i'); }
 
 function currentTerminalFallback() {
@@ -482,6 +482,16 @@ function classifyTrip(destName, dirRef) {
   return '?';
 }
 function wantedDir() { return state.direction === 'toSFO' ? 'NB' : 'SB'; }
+function lineLabel(ref) { return String(ref || '').replace(/^.*[:_]/, ''); }
+
+// tolerant line-ref compare: "292", "SM:292", "292_MERGED" all count as 292
+function lineMatch(lines, ref) {
+  const r = String(ref || '').toUpperCase();
+  return lines.some(l => {
+    const u = l.toUpperCase();
+    return r === u || r.endsWith(':' + u) || r.endsWith('_' + u) || r.startsWith(u + '_');
+  });
+}
 
 function parseVisits(j) {
   const sd = ((j.Siri || j).ServiceDelivery) || {};
@@ -498,7 +508,7 @@ async function probeStop(stop, lines) {
     const mvj = v.MonitoredVehicleJourney || {};
     const line = String(mvj.LineRef || '');
     const cls = classifyTrip(mvj.DestinationName, mvj.DirectionRef);
-    if (!lines.includes(line) || (cls !== wantedDir() && cls !== '?')) {
+    if (!lineMatch(lines, line) || (cls !== wantedDir() && cls !== '?')) {
       others.push(`${line}→${mvj.DestinationName || mvj.DirectionRef || '?'}`);
       continue;
     }
@@ -511,7 +521,7 @@ async function probeStop(stop, lines) {
     matched.push({
       mins: Math.max(0, mins),
       clock: clockFromISO(iso),
-      dest: `${line} · to ${mvj.DestinationName || (state.direction === 'toSFO' ? 'San Francisco' : 'Hillsdale')}${cls === '?' ? ' (?)' : ''}`,
+      dest: `${lineLabel(line)} · to ${mvj.DestinationName || (state.direction === 'toSFO' ? 'San Francisco' : 'Hillsdale')}${cls === '?' ? ' (?)' : ''}`,
       live: !!(call.ExpectedDepartureTime || call.ExpectedArrivalTime),
       map: (isFinite(lat) && isFinite(lon)) ? `https://maps.google.com/?q=${lat},${lon}` : null,
     });
@@ -537,16 +547,20 @@ async function loadSamLive(lines) {
     LS.write('learnedStops', Object.assign(LS.read('learnedStops', {}), { [dirKey]: { code: chosen.code, name: chosen.name } }));
   }
   state.sam.live = rows;
+  state.sam.candList = list;
   const boardStop = chosen || list[0];
   state.sam.boardStop = boardStop;
   state.sam.sub = `from ${boardStop.name}` + (state.direction === 'toSFO' ? ' · get off at your terminal' : ' · get off at Millbrae Transit Center');
   if (!rows.length) {
-    state.sam.note = `No live 292 predictions right now (checked ${probed.length} stop${probed.length > 1 ? 's' : ''} at ${state.direction === 'toSFO' ? 'Millbrae TC' : 'Terminal ' + state.terminal}). Scheduled times below still apply — live tracking usually appears ~30 min before departure.`;
+    const seen = probed.flatMap(p => p.others || []);
+    const summary = [...new Set(seen)].slice(0, 3).join(', ');
+    state.sam.note = `No live 292 predictions right now (checked ${probed.length} stop${probed.length > 1 ? 's' : ''} at ${state.direction === 'toSFO' ? 'Millbrae TC' : 'Terminal ' + state.terminal})` +
+      (summary ? ` — only saw ${summary}.` : '.') +
+      ' Live tracking usually appears ~30 min before departure; scheduled times below still apply.';
   }
 }
 
-async function loadSamSched(lines) {
-  const stop = state.sam.boardStop || (state.direction === 'toSFO' ? FALLBACK.millbraeTC : currentTerminalFallback());
+async function fetchStopTimetable(stop) {
   const day = ptParts().date;
   const ck = `tt.${stop.code}.${day}`;
   let visits = cache511(ck, 6 * 36e5);
@@ -569,17 +583,34 @@ async function loadSamSched(lines) {
     });
     cache511Set(ck, visits);
   }
-  const out = [];
-  for (const v of visits) {
-    if (!lines.includes(v.line)) continue;
-    const cls = classifyTrip(v.dest, v.dir);
-    if (cls !== wantedDir() && cls !== '?') continue;
-    const mins = minsFromNowISO(v.iso);
-    if (mins === null || mins < 2) continue;
-    out.push({ mins, clock: clockFromISO(v.iso), dest: `${v.line} · to ${v.dest || '—'}${cls === '?' ? ' (?)' : ''}`, live: false });
+  return visits;
+}
+
+async function loadSamSched(lines) {
+  const first = state.sam.boardStop || (state.direction === 'toSFO' ? FALLBACK.millbraeTC : currentTerminalFallback());
+  const rest = (state.sam.candList || []).filter(s => s.code !== first.code);
+  const attempts = [];
+  let out = [];
+  // if the boarding stop's timetable is empty, fall back to the next candidate stop
+  for (const stop of [first, ...rest].slice(0, 3)) {
+    let visits;
+    try { visits = await fetchStopTimetable(stop); }
+    catch (e) { attempts.push({ stop: stop.name, code: stop.code, error: String(e.message || e) }); continue; }
+    out = [];
+    for (const v of visits) {
+      if (!lineMatch(lines, v.line)) continue;
+      const cls = classifyTrip(v.dest, v.dir);
+      if (cls !== wantedDir() && cls !== '?') continue;
+      const mins = minsFromNowISO(v.iso);
+      if (mins === null || mins < 2) continue;
+      out.push({ mins, clock: clockFromISO(v.iso), dest: `${lineLabel(v.line)} · to ${v.dest || '—'}${cls === '?' ? ' (?)' : ''}`, live: false });
+    }
+    attempts.push({ stop: stop.name, code: stop.code, rows: out.length, rawCount: visits.length,
+                    sample: out.length ? undefined : visits.slice(0, 3) });
+    if (out.length) break;
   }
   out.sort((a, b) => a.mins - b.mins);
-  state.debug.samSched = { stop: stop.name, code: stop.code, rows: out.length, rawCount: visits.length };
+  state.debug.samSched = attempts;
   // hide schedule entries that duplicate a live prediction (within 4 min of one)
   state.sam.sched = out.filter(s => !state.sam.live.some(l => Math.abs(l.mins - s.mins) <= 4));
 }
