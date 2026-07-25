@@ -206,9 +206,9 @@
   <div class="modal">
     <h2>Settings</h2>
     <div class="field">
-      <label>Relay URL (recommended)</label>
-      <input id="setRelay" placeholder="https://millbrae-sfo-relay.….workers.dev" autocomplete="off">
-      <div class="hint">Cloudflare Worker that holds the API tokens and caches responses (see <code>worker/</code> in the repo). With this set, no 511 token is needed on this device.</div>
+      <label>Relay URL</label>
+      <input id="setRelay" placeholder="default: sweet-hill-6c38.mo-jo.workers.dev" autocomplete="off">
+      <div class="hint">Cloudflare Worker that holds the API tokens and caches responses (see <code>worker/</code> in the repo). Leave empty to use the default relay; type <code>off</code> to bypass it and use your own 511 token directly.</div>
     </div>
     <div class="field">
       <label>511.org API token (only needed without a relay)</label>
@@ -255,6 +255,7 @@ const LS = {
 };
 
 const DEFAULT_BART_KEY = 'MW9S-E7SL-26DU-VV8V';
+const DEFAULT_RELAY = 'https://sweet-hill-6c38.mo-jo.workers.dev';
 const SM_LINES = ['292', 'SFO', '398'];       // candidate SamTrans lines Millbrae<->SFO; filtered to what's live
 const PT_TZ = 'America/Los_Angeles';
 
@@ -325,13 +326,19 @@ function clockFromMins(mins) { // minutes since midnight PT -> "6:05 AM"
 }
 
 /* ============================== fetch w/ CORS fallback ============================== */
-function samEnabled() { return !!(state.key511 || state.relayUrl); }
+// The relay is on by default; type "off" in settings to bypass it and go
+// direct to the APIs with your own 511 token.
+function relayBase() {
+  if (state.relayUrl === 'off') return '';
+  return (state.relayUrl || DEFAULT_RELAY).replace(/\/+$/, '');
+}
+function samEnabled() { return !!(state.key511 || relayBase()); }
 
-// When a relay worker is configured, route API calls through it (the relay
-// injects the API keys server-side and caches responses).
+// Route API calls through the relay worker (it injects the API keys
+// server-side and caches responses).
 function applyRelay(url) {
-  if (!state.relayUrl) return url;
-  const r = state.relayUrl.replace(/\/+$/, '');
+  const r = relayBase();
+  if (!r) return url;
   return url
     .replace('https://api.511.org', r + '/511')
     .replace('https://api.bart.gov', r + '/bart');
@@ -374,7 +381,7 @@ function calls511LastHour() {
   return LS.read('calls511', []).filter(t => Date.now() - t < 36e5).length;
 }
 async function fetchJSON(url, hostTag) {
-  if (hostTag === '511' && !state.relayUrl) { // relayed calls are cached server-side
+  if (hostTag === '511' && !relayBase()) { // relayed calls are cached server-side
     const calls = LS.read('calls511', []).filter(t => Date.now() - t < 36e5);
     calls.push(Date.now());
     LS.write('calls511', calls);
@@ -597,7 +604,7 @@ async function refreshSamTrans() {
   } catch (e) {
     state.sam.live = []; state.sam.sched = []; state.sam.note = '';
     state.debug.sam = { error: String(e.message || e) };
-    state.sam.err = (e instanceof HttpError && e.status === 401) ? (state.relayUrl ? 'Relay rejected by 511 — check the worker’s TOKEN_511 secret.' : 'Invalid 511 token — check it in ⚙︎ settings.')
+    state.sam.err = (e instanceof HttpError && e.status === 401) ? (relayBase() ? 'Relay rejected by 511 — check the worker’s TOKEN_511 secret.' : 'Invalid 511 token — check it in ⚙︎ settings.')
       : (e instanceof HttpError && e.status === 429) ? '511 rate limit hit — will retry shortly.'
       : 'Couldn’t reach 511.org — will retry.';
   }
@@ -759,7 +766,7 @@ function startTimers() {
   tickTimer = setInterval(render, 15000);
   bartTimer = setInterval(() => { if (!document.hidden) refreshBart().then(render); }, 60000);
   samTimer = setInterval(() => {
-    if (!document.hidden && samEnabled() && (state.relayUrl || calls511LastHour() < 40)) refreshSamTrans().then(render);
+    if (!document.hidden && samEnabled() && (relayBase() || calls511LastHour() < 40)) refreshSamTrans().then(render);
   }, 150000);
 }
 document.addEventListener('visibilitychange', () => {
@@ -798,6 +805,7 @@ $('settingsBtn').addEventListener('click', () => {
   $('setKeyBart').value = state.keyBart;
   $('setProxy').value = state.proxyMode;
   $('debugBox').textContent = JSON.stringify({
+    relay: relayBase() || 'direct (off)',
     calls511LastHour: calls511LastHour(),
     learnedStops: LS.read('learnedStops', {}),
     ...state.debug,
@@ -808,7 +816,8 @@ $('modalClose').addEventListener('click', () => $('modalBg').classList.remove('o
 $('modalBg').addEventListener('click', e => { if (e.target === $('modalBg')) $('modalBg').classList.remove('open'); });
 $('modalSave').addEventListener('click', () => {
   let relay = $('setRelay').value.trim().replace(/\/+$/, '');
-  if (relay && !/^https?:\/\//i.test(relay)) relay = 'https://' + relay;
+  if (/^(off|none|direct)$/i.test(relay)) relay = 'off';
+  else if (relay && !/^https?:\/\//i.test(relay)) relay = 'https://' + relay;
   state.relayUrl = relay;
   state.key511 = $('setKey511').value.trim();
   state.keyBart = $('setKeyBart').value.trim() || DEFAULT_BART_KEY;
