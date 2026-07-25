@@ -647,8 +647,11 @@ async function loadSamSched(lines) {
   }
   out.sort((a, b) => a.mins - b.mins);
   state.debug.samSched = attempts;
-  // hide schedule entries that duplicate a live prediction (within 4 min of one)
-  state.sam.sched = out.filter(s => !state.sam.live.some(l => Math.abs(l.mins - s.mins) <= 4));
+  // Live predictions cover every bus up to the latest one, so scheduled entries
+  // in that window are duplicates (possibly shifted by delays). Hide anything up
+  // to the last live time + 10 min buffer for early-running buses.
+  const lastLive = state.sam.live.length ? Math.max(...state.sam.live.map(l => l.mins)) : -Infinity;
+  state.sam.sched = out.filter(s => s.mins > lastLive + 10);
 }
 
 async function refreshSamTrans() {
@@ -749,7 +752,9 @@ async function loadBartSched(orig) {
     out.push({ mins, clock: clockFromMins(t), dest: `to ${it.head}`, live: false });
   }
   out.sort((a, b) => a.mins - b.mins);
-  state.bart.sched = out.filter(s => !state.bart.live.some(l => Math.abs(l.mins - s.mins) <= 3));
+  // same rule as the bus card: live ETDs cover the window up to the last one
+  const lastLive = state.bart.live.length ? Math.max(...state.bart.live.map(l => l.mins)) : -Infinity;
+  state.bart.sched = out.filter(s => s.mins > lastLive + 5);
 }
 
 /* ============================== rendering ============================== */
