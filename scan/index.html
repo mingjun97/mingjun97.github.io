@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111">
+<title>Barcode Eligibility Check</title>
+<style>
+  :root{--bg:#111;--fg:#f4f4f4;--muted:#999;--card:#1d1d1d;--ok:#16a34a;--bad:#dc2626;--line:#333}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--fg)}
+  main{max-width:520px;margin:0 auto;padding:16px 16px 40px}
+  h1{font-size:18px;margin:4px 0 12px;font-weight:600}
+  #reader{width:100%;border-radius:12px;overflow:hidden;background:#000;min-height:220px}
+  #reader video{border-radius:12px}
+  .row{display:flex;gap:8px;margin-top:12px}
+  button,input{font:inherit;border-radius:10px;border:1px solid var(--line);padding:12px 14px}
+  button{background:#2a2a2a;color:var(--fg);cursor:pointer}
+  button.primary{background:#2563eb;border-color:#2563eb}
+  input{flex:1;min-width:0;background:var(--card);color:var(--fg)}
+  #result{margin-top:14px;border-radius:14px;padding:22px 16px;text-align:center;background:var(--card);border:1px solid var(--line)}
+  #result .big{font-size:38px;font-weight:800;letter-spacing:1px}
+  #result .code{margin-top:6px;font-family:ui-monospace,Menlo,monospace;font-size:17px;word-break:break-all}
+  #result .sub{margin-top:4px;color:rgba(255,255,255,.85);font-size:14px}
+  #result.ok{background:var(--ok);border-color:var(--ok)}
+  #result.bad{background:var(--bad);border-color:var(--bad)}
+  h2{font-size:14px;color:var(--muted);font-weight:600;margin:20px 0 6px;text-transform:uppercase;letter-spacing:.5px}
+  ul{list-style:none;padding:0;margin:0}
+  #history li{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-family:ui-monospace,Menlo,monospace;font-size:14px}
+  .tag{font-family:-apple-system,sans-serif;font-weight:700;font-size:12px;padding:2px 8px;border-radius:6px}
+  .tag.ok{background:var(--ok)} .tag.bad{background:var(--bad)}
+  details{margin-top:20px;color:var(--muted)}
+  details ul{columns:2;font-family:ui-monospace,Menlo,monospace;font-size:13px;margin-top:8px;color:var(--fg)}
+  .hint{color:var(--muted);font-size:13px;margin-top:8px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Barcode Eligibility Check</h1>
+  <div id="reader"></div>
+  <div class="row">
+    <button id="toggle" class="primary" style="flex:1">Start camera</button>
+  </div>
+  <form id="manual" class="row" autocomplete="off">
+    <input id="code" inputmode="numeric" placeholder="Or type / use a USB scanner">
+    <button type="submit">Check</button>
+  </form>
+
+  <div id="result"><div class="big">Ready</div><div class="sub">Scan a barcode to check</div></div>
+
+  <h2>Recent scans</h2>
+  <ul id="history"></ul>
+
+  <details>
+    <summary id="listSummary">Eligible prefixes</summary>
+    <ul id="list"></ul>
+  </details>
+  <p class="hint">A code is eligible when its digits start with one of the prefixes (dash ignored, leading zeros from EAN-13/GTIN-14 ignored).</p>
+</main>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+const PREFIXES = `
+196742-02462 196742-06029 196742-06030 196742-06378 196742-06380 196742-06383
+196742-06873 196742-07112 196742-07113 196742-07132 196742-07133 196742-07134
+196742-07135 196742-07136 196742-07137 196742-07138 196742-07139 196742-09545
+196742-09546 196742-09547 196742-10719 196742-14839 196742-14840 196742-14841
+196742-14843 196742-14844 196742-14845 196742-14846 196742-14847 196742-14890
+196742-17115 196742-17116 196742-17117 196742-17618 196742-17620 196742-17621
+799366-87662 799366-96487 799366-96488 799366-96490 799366-96492 799366-96493
+799366-99016 799366-99017`.trim().split(/\s+/);
+const DIGITS = PREFIXES.map(p => p.replace(/\D/g, ''));
+
+function check(raw) {
+  // Keep digits only; drop leading zeros added by EAN-13 / GTIN-14 encodings.
+  const d = String(raw).replace(/\D/g, '').replace(/^0+/, '');
+  if (!d) return null;
+  const i = DIGITS.findIndex(p => d.startsWith(p));
+  return { code: String(raw).trim(), match: i >= 0 ? PREFIXES[i] : null };
+}
+
+const $ = id => document.getElementById(id);
+const resultEl = $('result'), historyEl = $('history');
+
+let audio;
+function beep(ok) {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.frequency.value = ok ? 1200 : 300;
+    g.gain.value = 0.15;
+    o.connect(g).connect(audio.destination);
+    o.start(); o.stop(audio.currentTime + (ok ? 0.15 : 0.4));
+  } catch (e) {}
+  if (navigator.vibrate) navigator.vibrate(ok ? 80 : [120, 80, 120]);
+}
+
+function show(raw) {
+  const r = check(raw);
+  if (!r) return;
+  const ok = !!r.match;
+  resultEl.className = ok ? 'ok' : 'bad';
+  resultEl.innerHTML = '';
+  const add = (cls, text) => { const el = document.createElement('div'); el.className = cls; el.textContent = text; resultEl.appendChild(el); };
+  add('big', ok ? 'ELIGIBLE' : 'MISMATCH');
+  add('code', r.code);
+  add('sub', ok ? 'Matched prefix ' + r.match : 'Prefix not in list');
+  beep(ok);
+
+  const li = document.createElement('li');
+  const c = document.createElement('span'); c.textContent = r.code;
+  const t = document.createElement('span'); t.className = 'tag ' + (ok ? 'ok' : 'bad'); t.textContent = ok ? 'ELIGIBLE' : 'MISMATCH';
+  li.append(c, t);
+  historyEl.prepend(li);
+  while (historyEl.children.length > 20) historyEl.lastChild.remove();
+}
+
+// Prefix list
+$('listSummary').textContent = `Eligible prefixes (${PREFIXES.length})`;
+$('list').innerHTML = PREFIXES.map(p => `<li>${p}</li>`).join('');
+
+// Manual / USB scanner input
+$('manual').addEventListener('submit', e => {
+  e.preventDefault();
+  show($('code').value);
+  $('code').value = '';
+});
+
+// Camera scanning
+let scanner, running = false, last = '', lastAt = 0;
+const F = window.Html5QrcodeSupportedFormats || {};
+const formats = [F.UPC_A, F.UPC_E, F.EAN_13, F.EAN_8, F.CODE_128, F.CODE_39, F.ITF].filter(v => v !== undefined);
+
+function onScan(text) {
+  const now = Date.now();
+  if (text === last && now - lastAt < 2500) return; // ignore repeat reads of the same code
+  last = text; lastAt = now;
+  show(text);
+}
+
+$('toggle').addEventListener('click', async () => {
+  const btn = $('toggle');
+  if (!window.Html5Qrcode) { alert('Scanner library failed to load. Check your connection.'); return; }
+  if (running) {
+    await scanner.stop().catch(() => {});
+    running = false; btn.textContent = 'Start camera';
+    return;
+  }
+  scanner = scanner || new Html5Qrcode('reader', { formatsToSupport: formats, useBarCodeDetectorIfSupported: true, verbose: false });
+  btn.disabled = true;
+  try {
+    await scanner.start(
+      { facingMode: 'environment' },
+      { fps: 12, qrbox: (w, h) => ({ width: Math.floor(w * 0.9), height: Math.floor(Math.min(h, w) * 0.45) }) },
+      onScan, () => {}
+    );
+    running = true; btn.textContent = 'Stop camera';
+  } catch (err) {
+    alert('Could not start camera: ' + err);
+  } finally { btn.disabled = false; }
+});
+</script>
+</body>
+</html>
