@@ -9,16 +9,25 @@
   :root{--bg:#111;--fg:#f4f4f4;--muted:#999;--card:#1d1d1d;--ok:#16a34a;--bad:#dc2626;--line:#333}
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--fg)}
-  main{max-width:520px;margin:0 auto;padding:16px 16px 40px}
-  h1{font-size:18px;margin:4px 0 12px;font-weight:600}
-  #reader{width:100%;border-radius:12px;overflow:hidden;background:#000;min-height:220px}
-  #reader video{border-radius:12px}
-  .row{display:flex;gap:8px;margin-top:12px}
+  main{max-width:520px;margin:0 auto;padding:12px 16px 40px}
+  h1{font-size:18px;margin:4px 0 10px;font-weight:600}
+  #cam{position:relative;width:100%;height:46vh;min-height:240px;max-height:420px;border-radius:12px;overflow:hidden;background:#000}
+  #cam video,#cam canvas{position:absolute;inset:0;width:100%;height:100%}
+  #cam video{object-fit:cover}
+  #cam .laser{position:absolute;left:6%;right:6%;top:50%;height:2px;background:rgba(239,68,68,.8);box-shadow:0 0 8px rgba(239,68,68,.9);pointer-events:none}
+  #cam .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--muted);font-size:15px}
+  #cam.on .msg{display:none}
+  #cam:not(.on) .laser{display:none}
+  #engine{position:absolute;right:8px;bottom:8px;font-size:11px;color:#ddd;background:rgba(0,0,0,.5);padding:2px 6px;border-radius:6px}
+  .row{display:flex;gap:8px;margin-top:10px;align-items:center}
   button,input{font:inherit;border-radius:10px;border:1px solid var(--line);padding:12px 14px}
   button{background:#2a2a2a;color:var(--fg);cursor:pointer}
   button.primary{background:#2563eb;border-color:#2563eb}
+  button[hidden],label[hidden]{display:none}
   input{flex:1;min-width:0;background:var(--card);color:var(--fg)}
-  #result{margin-top:14px;border-radius:14px;padding:22px 16px;text-align:center;background:var(--card);border:1px solid var(--line)}
+  label.zoom{display:flex;align-items:center;gap:8px;flex:1;color:var(--muted);font-size:14px}
+  label.zoom input{padding:0;border:0;background:none}
+  #result{margin-top:12px;border-radius:14px;padding:20px 16px;text-align:center;background:var(--card);border:1px solid var(--line)}
   #result .big{font-size:38px;font-weight:800;letter-spacing:1px}
   #result .code{margin-top:6px;font-family:ui-monospace,Menlo,monospace;font-size:17px;word-break:break-all}
   #result .sub{margin-top:4px;color:rgba(255,255,255,.85);font-size:14px}
@@ -37,9 +46,19 @@
 <body>
 <main>
   <h1>Barcode Eligibility Check</h1>
-  <div id="reader"></div>
+  <div id="cam">
+    <video id="video" playsinline muted></video>
+    <canvas id="overlay"></canvas>
+    <div class="laser"></div>
+    <div class="msg">Tap “Start camera”. The whole view is scanned — no need to line up exactly.</div>
+    <span id="engine"></span>
+  </div>
   <div class="row">
     <button id="toggle" class="primary" style="flex:1">Start camera</button>
+    <button id="torch" hidden>Light</button>
+  </div>
+  <div class="row">
+    <label class="zoom" id="zoomWrap" hidden>Zoom <input id="zoom" type="range" style="flex:1"></label>
   </div>
   <form id="manual" class="row" autocomplete="off">
     <input id="code" inputmode="numeric" placeholder="Or type / use a USB scanner">
@@ -55,10 +74,9 @@
     <summary id="listSummary">Eligible prefixes</summary>
     <ul id="list"></ul>
   </details>
-  <p class="hint">A code is eligible when its digits start with one of the prefixes (dash ignored, leading zeros from EAN-13/GTIN-14 ignored).</p>
+  <p class="hint">A code is eligible when its digits start with one of the prefixes (dash ignored, leading zeros from EAN-13/GTIN-14 ignored). Tip: hold the phone 10–20 cm away; use zoom if the barcode is small.</p>
 </main>
 
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
 const PREFIXES = `
 196742-02462 196742-06029 196742-06030 196742-06378 196742-06380 196742-06383
@@ -70,6 +88,7 @@ const PREFIXES = `
 799366-87662 799366-96487 799366-96488 799366-96490 799366-96492 799366-96493
 799366-99016 799366-99017`.trim().split(/\s+/);
 const DIGITS = PREFIXES.map(p => p.replace(/\D/g, ''));
+const FORMATS = ['upc_a', 'upc_e', 'ean_13', 'ean_8', 'code_128', 'code_39', 'itf'];
 
 function check(raw) {
   // Keep digits only; drop leading zeros added by EAN-13 / GTIN-14 encodings.
@@ -113,52 +132,166 @@ function show(raw) {
   li.append(c, t);
   historyEl.prepend(li);
   while (historyEl.children.length > 20) historyEl.lastChild.remove();
+  return ok;
 }
 
-// Prefix list
 $('listSummary').textContent = `Eligible prefixes (${PREFIXES.length})`;
 $('list').innerHTML = PREFIXES.map(p => `<li>${p}</li>`).join('');
 
-// Manual / USB scanner input
 $('manual').addEventListener('submit', e => {
   e.preventDefault();
   show($('code').value);
   $('code').value = '';
 });
 
-// Camera scanning
-let scanner, running = false, last = '', lastAt = 0;
-const F = window.Html5QrcodeSupportedFormats || {};
-const formats = [F.UPC_A, F.UPC_E, F.EAN_13, F.EAN_8, F.CODE_128, F.CODE_39, F.ITF].filter(v => v !== undefined);
-
-function onScan(text) {
-  const now = Date.now();
-  if (text === last && now - lastAt < 2500) return; // ignore repeat reads of the same code
-  last = text; lastAt = now;
-  show(text);
+// ---------- Detector: native BarcodeDetector if it reads retail codes, else ZXing WebAssembly ----------
+let detector = null, native = false;
+function loadScript(src) {
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('Scanner engine failed to load. Check your internet connection.')); document.head.appendChild(s); });
 }
+async function getDetector() {
+  if (detector) return detector;
+  try {
+    if ('BarcodeDetector' in window) {
+      const supported = await BarcodeDetector.getSupportedFormats();
+      const fmts = FORMATS.filter(f => supported.includes(f));
+      if (fmts.includes('upc_a') && fmts.includes('ean_13')) {
+        detector = new BarcodeDetector({ formats: fmts }); native = true;
+        $('engine').textContent = 'native';
+        return detector;
+      }
+    }
+  } catch (e) {}
+  await loadScript('https://cdn.jsdelivr.net/npm/barcode-detector@3.2.2/dist/iife/ponyfill.js');
+  detector = new BarcodeDetectionAPI.BarcodeDetector({ formats: FORMATS });
+  $('engine').textContent = 'wasm';
+  return detector;
+}
+// Start fetching the WebAssembly engine right away so the first scan is fast.
+getDetector().then(d => { if (!native) { const c = document.createElement('canvas'); c.width = c.height = 8; d.detect(c).catch(() => {}); } }).catch(() => {});
 
-$('toggle').addEventListener('click', async () => {
+// ---------- Camera ----------
+const video = $('video'), overlay = $('overlay'), octx = overlay.getContext('2d');
+const work = document.createElement('canvas'), wctx = work.getContext('2d', { willReadFrequently: true });
+let stream = null, track = null, running = false, last = '', lastAt = 0, torchOn = false;
+
+async function start() {
   const btn = $('toggle');
-  if (!window.Html5Qrcode) { alert('Scanner library failed to load. Check your connection.'); return; }
-  if (running) {
-    await scanner.stop().catch(() => {});
-    running = false; btn.textContent = 'Start camera';
-    return;
-  }
-  scanner = scanner || new Html5Qrcode('reader', { formatsToSupport: formats, useBarCodeDetectorIfSupported: true, verbose: false });
   btn.disabled = true;
   try {
-    await scanner.start(
-      { facingMode: 'environment' },
-      { fps: 12, qrbox: (w, h) => ({ width: Math.floor(w * 0.9), height: Math.floor(Math.min(h, w) * 0.45) }) },
-      onScan, () => {}
-    );
-    running = true; btn.textContent = 'Stop camera';
+    await getDetector();
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+    });
+    video.srcObject = stream;
+    await video.play();
+    track = stream.getVideoTracks()[0];
+    setupControls();
+    running = true;
+    $('cam').classList.add('on');
+    btn.textContent = 'Stop camera';
+    loop();
   } catch (err) {
-    alert('Could not start camera: ' + err);
+    alert('Could not start camera: ' + (err && err.message || err));
+    stop();
   } finally { btn.disabled = false; }
+}
+
+function stop() {
+  running = false;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = track = null; torchOn = false;
+  video.srcObject = null;
+  $('cam').classList.remove('on');
+  $('toggle').textContent = 'Start camera';
+  $('torch').hidden = true; $('zoomWrap').hidden = true;
+  octx.clearRect(0, 0, overlay.width, overlay.height);
+}
+
+function setupControls() {
+  const caps = track.getCapabilities ? track.getCapabilities() : {};
+  const adv = {};
+  if (caps.focusMode && caps.focusMode.includes('continuous')) adv.focusMode = 'continuous';
+  if (Object.keys(adv).length) track.applyConstraints({ advanced: [adv] }).catch(() => {});
+  $('torch').hidden = !caps.torch;
+  if (caps.zoom) {
+    const z = $('zoom');
+    z.min = caps.zoom.min; z.max = caps.zoom.max; z.step = caps.zoom.step || 0.1;
+    // A little zoom helps the camera focus on small barcodes without moving closer.
+    const initial = Math.min(caps.zoom.max, Math.max(caps.zoom.min, 1.5));
+    z.value = initial;
+    track.applyConstraints({ advanced: [{ zoom: initial }] }).catch(() => {});
+    $('zoomWrap').hidden = false;
+  }
+}
+$('zoom').addEventListener('input', e => track && track.applyConstraints({ advanced: [{ zoom: +e.target.value }] }).catch(() => {}));
+$('torch').addEventListener('click', () => {
+  if (!track) return;
+  torchOn = !torchOn;
+  track.applyConstraints({ advanced: [{ torch: torchOn }] }).catch(() => {});
+  $('torch').textContent = torchOn ? 'Light off' : 'Light';
 });
+$('toggle').addEventListener('click', () => running ? stop() : start());
+document.addEventListener('visibilitychange', () => { if (document.hidden && running) stop(); });
+
+// Draw the outline of the detected barcode on top of the video (video uses object-fit: cover).
+function drawBoxes(codes, srcW, srcH, color) {
+  const w = overlay.clientWidth, h = overlay.clientHeight, dpr = window.devicePixelRatio || 1;
+  if (overlay.width !== w * dpr) { overlay.width = w * dpr; overlay.height = h * dpr; }
+  octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  octx.clearRect(0, 0, w, h);
+  const s = Math.max(w / srcW, h / srcH), ox = (w - srcW * s) / 2, oy = (h - srcH * s) / 2;
+  octx.lineWidth = 4; octx.strokeStyle = color; octx.fillStyle = color + '33';
+  for (const c of codes) {
+    const pts = c.cornerPoints && c.cornerPoints.length ? c.cornerPoints : null;
+    if (!pts) continue;
+    octx.beginPath();
+    pts.forEach((p, i) => { const x = ox + p.x * s, y = oy + p.y * s; i ? octx.lineTo(x, y) : octx.moveTo(x, y); });
+    octx.closePath(); octx.fill(); octx.stroke();
+  }
+}
+
+let clearTimer;
+async function loop() {
+  while (running) {
+    if (video.readyState >= 2 && video.videoWidth) {
+      const vw = video.videoWidth, vh = video.videoHeight;
+      let source = video, sw = vw, sh = vh;
+      if (!native) {
+        // WebAssembly path: downscale to ~1280px on the long side for speed.
+        const k = Math.min(1, 1280 / Math.max(vw, vh));
+        sw = Math.round(vw * k); sh = Math.round(vh * k);
+        if (work.width !== sw) { work.width = sw; work.height = sh; }
+        wctx.drawImage(video, 0, 0, sw, sh);
+        source = work;
+      }
+      let codes = [];
+      try { codes = await detector.detect(source); } catch (e) {}
+      if (!running) break;
+      codes = codes.filter(c => c.rawValue);
+      if (codes.length) {
+        // Prefer the code closest to the centre if several are in view.
+        codes.sort((a, b) => dist(a, sw, sh) - dist(b, sw, sh));
+        let text = codes[0].rawValue; const now = Date.now();
+        // Show UPC-A codes as 12 digits even when reported in EAN-13 form.
+        if (/^0\d{12}$/.test(text)) text = text.slice(1);
+        let ok = check(text);
+        ok = ok && !!ok.match;
+        drawBoxes([codes[0]], sw, sh, ok ? '#22c55e' : '#ef4444');
+        clearTimeout(clearTimer);
+        clearTimer = setTimeout(() => octx.clearRect(0, 0, overlay.width, overlay.height), 600);
+        if (text !== last || now - lastAt > 2500) show(text);
+        last = text; lastAt = now;
+      }
+    }
+    await new Promise(r => video.requestVideoFrameCallback ? video.requestVideoFrameCallback(() => r()) : requestAnimationFrame(r));
+  }
+}
+function dist(c, w, h) {
+  const b = c.boundingBox; if (!b) return 0;
+  return Math.hypot(b.x + b.width / 2 - w / 2, b.y + b.height / 2 - h / 2);
+}
 </script>
 </body>
 </html>
