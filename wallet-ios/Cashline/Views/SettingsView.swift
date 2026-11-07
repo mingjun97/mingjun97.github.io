@@ -190,7 +190,12 @@ struct SettingsView: View {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         do {
-            pendingImport = try Backup.decode(Data(contentsOf: url))
+            let decoded = try Backup.decode(Data(contentsOf: url))
+            // let the document picker finish dismissing before asking
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(500))
+                pendingImport = decoded
+            }
         } catch {
             store.show(Backup.BackupError.notABackup.localizedDescription)
         }

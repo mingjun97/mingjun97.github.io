@@ -28,6 +28,7 @@ struct DepositEditor: View {
                     TextField("Name, e.g. Payroll — Acme, eBay payout", text: $name)
                     MoneyField(title: "Amount", text: $amount)
                     Picker("Deposits into", selection: $accountId) {
+                        Text("Choose…").tag(String?.none)
                         ForEach(store.state.accounts) { a in Text(a.name).tag(String?.some(a.id)) }
                     }
                 }
@@ -70,7 +71,7 @@ struct DepositEditor: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("Save", action: save).disabled(trimmedName.isEmpty || accountId == nil) }
+                ToolbarItem(placement: .confirmationAction) { Button("Save", action: save).disabled(trimmedName.isEmpty || store.state.account(accountId) == nil) }
             }
             .onAppear(perform: load)
         }
@@ -83,7 +84,7 @@ struct DepositEditor: View {
             accountId = store.state.accounts.first?.id
             return
         }
-        name = d.name; amount = moneyText(d.amount); accountId = d.accountId; type = d.type
+        name = d.name; amount = moneyText(d.amount); accountId = store.state.account(d.accountId)?.id; type = d.type
         if let iso = d.date, let day = Day(iso: iso), let dt = day.date(hour: 12) { date = dt }
         cadence = d.cadence ?? .biweekly
         if let iso = d.anchor, let day = Day(iso: iso), let dt = day.date(hour: 12) { anchor = dt }

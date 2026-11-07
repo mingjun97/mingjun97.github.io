@@ -123,7 +123,7 @@ struct BillEditor: View {
         var b = existing ?? Bill(name: trimmedName, kind: kind, amount: 0, dueDay: dueDay, accountId: accountId, autopay: autopay)
         b.name = String(trimmedName.prefix(40))
         b.kind = kind
-        b.icon = icon
+        b.icon = iconTouched ? icon : nil
         b.amount = max(0, cents(parseMoney(amount) ?? 0))
         b.dueDay = dueDay
         b.accountId = accountId

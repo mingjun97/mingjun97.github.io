@@ -30,10 +30,7 @@ struct BalanceSheet: View {
                         MoneyField(title: mode == .set ? "Amount due" : "Post to next statement", text: $amount,
                                    allowNegative: mode == .post, prompt: mode == .set ? "0.00" : "120.00 or -20")
                     } footer: {
-                        Text(mode == .set
-                             ? "The current statement, due \(DayText.short(due.date))."
-                             : (b.pending > 0 ? "Pending so far: \(b.pending.usd). " : "")
-                               + "Held out of the current amount due; folds in automatically after \(DayText.short(due.date)) passes. A negative amount corrects.")
+                        Text(footer(b, due: due))
                     }
                 }
                 .navigationTitle("Balance — \(b.name)")
@@ -50,6 +47,12 @@ struct BalanceSheet: View {
                 }
             }
         }
+    }
+
+    private func footer(_ b: Bill, due: DueInfo) -> String {
+        if mode == .set { return "The current statement, due \(DayText.short(due.date))." }
+        let pending = b.pending > 0 ? "Pending so far: \(b.pending.usd). " : ""
+        return pending + "Held out of the current amount due; folds in automatically after \(DayText.short(due.date)) passes. A negative amount corrects."
     }
 
     private func save(_ b: Bill) {
@@ -110,13 +113,13 @@ struct AccountEditor: View {
                             if store.state.bills.contains(where: { $0.accountId == a.id }) { confirmDelete = true } else { delete(a) }
                         }
                     }
-                    .confirmationDialog("Delete account?", isPresented: $confirmDelete, titleVisibility: .visible) {
-                        Button("Delete", role: .destructive) { delete(a) }
-                    } message: {
-                        let n = store.state.bills.filter { $0.accountId == a.id }.count
-                        Text("\(a.name) has \(n) linked bill\(n == 1 ? "" : "s"). They'll keep their data but show “No account”.")
-                    }
                 }
+            }
+            .confirmationDialog("Delete account?", isPresented: $confirmDelete, titleVisibility: .visible) {
+                if let a = existing { Button("Delete", role: .destructive) { delete(a) } }
+            } message: {
+                let n = store.state.bills.filter { $0.accountId == accountId }.count
+                Text("\(existing?.name ?? "This account") has \(n) linked bill\(n == 1 ? "" : "s"). They'll keep their data but show “No account”.")
             }
             .navigationTitle(existing == nil ? "Add a checking account" : "Update account")
             .navigationBarTitleDisplayMode(.inline)

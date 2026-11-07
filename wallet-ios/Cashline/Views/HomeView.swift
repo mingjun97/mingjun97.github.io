@@ -326,13 +326,12 @@ struct DayStrip: View {
         let events = store.engine.calendarEvents(from: start, through: days[34])
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: 4) {
-                ForEach(days, id: \.self) { d in
+                ForEach(days, id: \.iso) { d in
                     let markers = Array((events[d] ?? []).map(\.marker).sorted().prefix(3))
                     Button { onSelect(d) } label: {
                         DayCell(day: d, today: t, focused: d == focused, markers: markers)
                     }
                     .buttonStyle(.plain)
-                    .id(d.iso)
                     .accessibilityLabel("\(DayText.short(d)): \(markers.isEmpty ? "nothing" : "\(events[d]?.count ?? 0) items")")
                 }
             }
