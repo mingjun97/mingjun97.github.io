@@ -1,0 +1,24 @@
+{
+  "accounts": [
+    {"id": "a1", "name": "Chase Checking …4821", "balance": 2350},
+    {"id": "a2", "name": "BofA Checking …1177", "balance": 640.5}
+  ],
+  "bills": [
+    {"id": "b1", "name": "Chase Sapphire", "kind": "card", "amount": 812.44, "dueDay": 10, "accountId": "a1",
+     "autopay": true, "autopayMode": "fixed", "autopayAmount": 250, "lastPaidCycle": "2026-10", "pending": 0,
+     "lastRolledCycle": "2026-10", "icon": "chase"},
+    {"id": "b2", "name": "Water & Sewer", "kind": "utility", "amount": "78.30", "dueDay": "12", "accountId": "a1",
+     "autopay": false, "lastPaidCycle": "2026-10"}
+  ],
+  "deposits": [
+    {"id": "d1", "name": "Payroll — Acme Corp", "amount": 2150, "accountId": "a1", "type": "payroll",
+     "cadence": "biweekly", "anchor": "2026-11-11"},
+    {"id": "d2", "name": "eBay sale payout", "amount": 310, "accountId": "a2", "type": "oneoff", "date": "2026-11-15"}
+  ],
+  "payments": [
+    {"id": "p1", "billId": "b2", "name": "Water & Sewer", "amount": 78.3, "date": "2026-10-11", "accountId": "a1", "cycle": "2026-10"}
+  ],
+  "scheduled": [],
+  "settings": {"leadDays": 5, "browserNotif": true, "deductOnPaid": true, "lastDriveBackup": 1762531200000},
+  "notified": {"b2|2026-10": 1760000000000}
+}
