@@ -10,6 +10,8 @@ struct SettingsView: View {
     @State private var confirmErase = false
     @State private var confirmSample = false
     @State private var notificationsDenied = false
+    @State private var tokenInput = ""
+    @State private var hasToken = false
 
     var body: some View {
         NavigationStack {
@@ -86,6 +88,7 @@ struct SettingsView: View {
                 Button("Load sample data", role: .destructive) { store.loadSample() }
             }
             .task {
+                hasToken = await AuthTokenStore.shared.token() != nil
                 if store.state.settings.notificationsEnabled {
                     let ok = await store.notifications.isAuthorized()
                     notificationsDenied = !ok
@@ -106,6 +109,12 @@ struct SettingsView: View {
             if store.backend.mode == .server {
                 TextField("https://api.example.com", text: $store.backend.serverURL)
                     .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+                SecureField(hasToken ? "Access token saved — paste to replace" : "Access token", text: $tokenInput)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .onSubmit(saveToken)
+                if !tokenInput.isEmpty {
+                    Button("Save access token", action: saveToken)
+                }
             }
             if store.backend.mode != .off {
                 ForEach(store.state.linkedItems) { item in
@@ -116,8 +125,14 @@ struct SettingsView: View {
                                 .font(.caption).foregroundStyle(item.needsReauth ? Theme.warn : Theme.muted)
                         }
                         Spacer()
+                        if item.needsReauth {
+                            Button("Reconnect") { Task { await store.reconnect(item) } }
+                                .font(.footnote.weight(.semibold))
+                                .buttonStyle(.borderless)
+                        }
                         Button("Disconnect", role: .destructive) { Task { await store.unlink(item) } }
                             .font(.footnote)
+                            .buttonStyle(.borderless)
                     }
                 }
                 Button {
@@ -148,7 +163,18 @@ struct SettingsView: View {
         switch store.backend.mode {
         case .off: return "Off: everything is entered by hand. Turn on to pull balances, card statements and payroll automatically through Plaid."
         case .demo: return "Demo bank uses made-up data so you can try connecting without a server."
-        case .server: return "Uses your Cashline server, which talks to Plaid. Bank passwords and Plaid keys never touch this iPhone."
+        case .server: return "Uses your Cashline server (wallet-server/), which talks to Plaid. Bank passwords and Plaid keys never touch this iPhone. Pull to refresh reads exact live balances from the bank."
+        }
+    }
+
+    private func saveToken() {
+        let t = tokenInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return }
+        tokenInput = ""
+        Task {
+            await AuthTokenStore.shared.set(t)
+            hasToken = true
+            store.show("Access token saved")
         }
     }
 

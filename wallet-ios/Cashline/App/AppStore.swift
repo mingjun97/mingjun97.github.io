@@ -205,22 +205,26 @@ final class AppStore {
                 result = r
             }
             _ = try await api.exchangePublicToken(result.publicToken, institutionName: result.institutionName)
-            try await syncNow(api)
+            try await syncNow(api, liveBalances: true)
         } catch {
             syncError = error.localizedDescription
         }
     }
 
     /// Pulls the latest balances, statements and paydays.
-    func sync() async {
+    ///
+    /// `liveBalances` (pull to refresh, Sync now) asks the bank for exact
+    /// balances right now; the server limits how often that billed call
+    /// really goes out. Background syncs use the cheaper cached balances.
+    func sync(liveBalances: Bool = true) async {
         guard let api = bankBackend else { return }
         isSyncing = true; syncError = nil
         defer { isSyncing = false }
-        do { try await syncNow(api) } catch { syncError = error.localizedDescription }
+        do { try await syncNow(api, liveBalances: liveBalances) } catch { syncError = error.localizedDescription }
     }
 
-    private func syncNow(_ api: CashlineBackend) async throws {
-        let snap = try await api.fetchSnapshot()
+    private func syncNow(_ api: CashlineBackend, liveBalances: Bool) async throws {
+        let snap = try await api.fetchSnapshot(liveBalances: liveBalances)
         var report = SyncReport()
         update(nil) { report = SyncMerger.merge(snap, into: &$0, today: today) }
         backend.lastSync = Date()
@@ -231,7 +235,24 @@ final class AppStore {
     func syncIfStale() async {
         guard bankBackend != nil, !state.linkedItems.isEmpty else { return }
         if let last = backend.lastSync, Date().timeIntervalSince(last) < 15 * 60 { return }
-        await sync()
+        await sync(liveBalances: false)
+    }
+
+    /// Re-authenticates a connection the bank logged out (Plaid Link update mode).
+    func reconnect(_ item: LinkedItem) async {
+        guard let api = bankBackend else { return }
+        isSyncing = true; syncError = nil
+        defer { isSyncing = false }
+        do {
+            let token = try await api.createLinkToken(updateItemId: item.id)
+            if backend.mode != .demo {
+                // update mode needs no token exchange; finishing Link is enough
+                guard try await PlaidLinkPresenter.open(linkToken: token) != nil else { return }
+            }
+            try await syncNow(api, liveBalances: true)
+        } catch {
+            syncError = error.localizedDescription
+        }
     }
 
     /// Disconnects an institution. Its accounts and bills stay, as manual records.

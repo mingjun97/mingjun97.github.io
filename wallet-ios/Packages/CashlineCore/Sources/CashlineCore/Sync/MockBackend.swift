@@ -16,7 +16,7 @@ public actor MockCashlineBackend: CashlineBackend {
         return item
     }
 
-    public func fetchSnapshot() async throws -> SyncSnapshot {
+    public func fetchSnapshot(liveBalances: Bool) async throws -> SyncSnapshot {
         let t = today()
         var snap = SyncSnapshot(items: linked, syncedAt: Date())
         for item in linked {
@@ -24,7 +24,9 @@ public actor MockCashlineBackend: CashlineBackend {
             let bank = item.institutionName ?? "Demo Bank"
             snap.accounts += [
                 ExternalAccount(id: "\(p)-chk", itemId: p, name: "\(bank) Checking", mask: "0042", type: .depository,
-                                subtype: "checking", currentBalance: 3120.55, availableBalance: 3080.55),
+                                subtype: "checking", currentBalance: 3120.55, availableBalance: 3080.55,
+                                balanceSource: liveBalances ? "realtime" : "cached",
+                                balanceUpdatedAt: liveBalances ? Date() : Date().addingTimeInterval(-3 * 3600)),
                 ExternalAccount(id: "\(p)-cc", itemId: p, name: "\(bank) Rewards Card", mask: "9911", type: .credit,
                                 subtype: "credit card", currentBalance: 684.12),
             ]

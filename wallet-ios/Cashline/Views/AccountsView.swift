@@ -95,6 +95,7 @@ private struct AccountCard: View {
                         if a.link != nil { Image(systemName: "link").accessibilityLabel("Synced") }
                     }
                     .font(.footnote).foregroundStyle(Theme.muted)
+                    if let link = a.link { BalanceFreshness(link: link) }
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 1) {
@@ -135,4 +136,35 @@ private struct AccountCard: View {
             return true
         } isTargeted: { isDropTarget = $0 }
     }
+}
+
+/// "● Live · 2:14 PM" / "Bank balance as of 9:02 AM" under a synced account.
+private struct BalanceFreshness: View {
+    let link: ExternalLink
+
+    var body: some View {
+        HStack(spacing: 4) {
+            if link.balanceIsLive == true {
+                Circle().fill(Theme.good).frame(width: 6, height: 6)
+                Text("Live" + (time.map { " · \($0)" } ?? ""))
+            } else {
+                Text(time.map { "Bank balance as of \($0)" } ?? "Bank balance (cached)")
+            }
+        }
+        .font(.caption2.weight(.medium))
+        .foregroundStyle(isStale ? Theme.warn : Theme.muted)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var asOf: Date? { link.balanceAsOf ?? link.lastSynced }
+
+    private var time: String? {
+        guard let d = asOf else { return nil }
+        return Calendar.current.isDateInToday(d)
+            ? d.formatted(date: .omitted, time: .shortened)
+            : d.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+    }
+
+    /// Older than 12 hours: worth a pull to refresh.
+    private var isStale: Bool { (asOf.map { Date().timeIntervalSince($0) } ?? .infinity) > 12 * 3600 }
 }

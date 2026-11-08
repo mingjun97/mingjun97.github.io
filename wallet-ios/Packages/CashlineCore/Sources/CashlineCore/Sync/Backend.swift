@@ -10,12 +10,16 @@ import FoundationNetworking
 /// 1. `createLinkToken()` → open Plaid Link on the device with it.
 /// 2. Link returns a `public_token` → `exchangePublicToken(...)`; the server
 ///    swaps it for an access token and stores it.
-/// 3. `fetchSnapshot()` whenever the app wants fresh data; merge it with
-///    `SyncMerger`.
+/// 3. `fetchSnapshot(liveBalances:)` whenever the app wants fresh data; merge
+///    it with `SyncMerger`.
+///
+/// `liveBalances: true` asks the server to read checking balances live from
+/// the bank (exact, but billed per call, so the server throttles it); false
+/// returns the aggregator's cached balances, which can be hours old.
 public protocol CashlineBackend: Sendable {
     func createLinkToken(updateItemId: String?) async throws -> String
     func exchangePublicToken(_ publicToken: String, institutionName: String?) async throws -> LinkedItem
-    func fetchSnapshot() async throws -> SyncSnapshot
+    func fetchSnapshot(liveBalances: Bool) async throws -> SyncSnapshot
     func removeItem(id: String) async throws
 }
 
@@ -57,8 +61,8 @@ public struct HTTPCashlineBackend: CashlineBackend {
         return try await send("POST", "v1/plaid/items", body: Body(publicToken: publicToken, institutionName: institutionName))
     }
 
-    public func fetchSnapshot() async throws -> SyncSnapshot {
-        try await send("GET", "v1/sync", body: Optional<String>.none)
+    public func fetchSnapshot(liveBalances: Bool) async throws -> SyncSnapshot {
+        try await send("GET", "v1/sync?balances=\(liveBalances ? "realtime" : "cached")", body: Optional<String>.none)
     }
 
     public func removeItem(id: String) async throws {
@@ -69,7 +73,10 @@ public struct HTTPCashlineBackend: CashlineBackend {
     private struct ErrorReply: Decodable { var error: String?; var message: String? }
 
     private func send<B: Encodable, R: Decodable>(_ method: String, _ path: String, body: B?) async throws -> R {
-        var req = URLRequest(url: baseURL.appendingPathComponent(path))
+        guard let url = URL(string: path, relativeTo: baseURL.hasDirectoryPath ? baseURL : baseURL.appendingPathComponent("")) else {
+            throw BackendError.invalidResponse
+        }
+        var req = URLRequest(url: url.absoluteURL)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         if let token = await authToken() { req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }

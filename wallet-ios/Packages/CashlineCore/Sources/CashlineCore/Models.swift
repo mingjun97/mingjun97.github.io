@@ -20,10 +20,16 @@ public struct ExternalLink: Codable, Hashable, Sendable {
     public var institution: String?
     public var mask: String?
     public var lastSynced: Date?
+    /// When the bank reported the synced balance (nil = unknown).
+    public var balanceAsOf: Date?
+    /// True when the balance was read live from the bank rather than a cached copy.
+    public var balanceIsLive: Bool?
 
-    public init(provider: String, itemId: String, externalId: String, institution: String? = nil, mask: String? = nil, lastSynced: Date? = nil) {
+    public init(provider: String, itemId: String, externalId: String, institution: String? = nil, mask: String? = nil,
+                lastSynced: Date? = nil, balanceAsOf: Date? = nil, balanceIsLive: Bool? = nil) {
         self.provider = provider; self.itemId = itemId; self.externalId = externalId
         self.institution = institution; self.mask = mask; self.lastSynced = lastSynced
+        self.balanceAsOf = balanceAsOf; self.balanceIsLive = balanceIsLive
     }
 }
 

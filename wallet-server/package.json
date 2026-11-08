@@ -1,0 +1,13 @@
+{
+  "name": "cashline-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend for the Cashline iOS app: holds Plaid credentials and bank access tokens, returns sync snapshots.",
+  "type": "module",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/index.ts",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.ts",
+    "sandbox-check": "node --disable-warning=ExperimentalWarning scripts/sandbox-check.ts"
+  }
+}

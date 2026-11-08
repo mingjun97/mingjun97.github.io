@@ -86,13 +86,15 @@ pays a card — are kept across syncs, and manual entries are never touched.
 
 What's left for a real Plaid integration:
 
-1. **Build the server** — four endpoints, specified in
-   [docs/BACKEND.md](docs/BACKEND.md). Plaid secrets and bank tokens stay there.
+1. **Run the server** — [`../wallet-server`](../wallet-server) implements
+   [docs/BACKEND.md](docs/BACKEND.md). Plaid secrets and bank tokens stay
+   there. Pull to refresh fetches exact live balances from the bank.
 2. **Add the Plaid SDK** — in `project.yml`, uncomment the `LinkKit` package
    and dependency, then run `xcodegen` again. `PlaidLinkPresenter.swift` picks
    it up automatically (`#if canImport(LinkKit)`).
-3. **User sign-in** — give the app a token for your server with
-   `AuthTokenStore.shared.set(token)` (e.g. after Sign in with Apple).
+3. **Access token** — paste the token you set in the server's
+   `CASHLINE_API_TOKENS` into Settings → Bank connections (stored in the
+   Keychain).
 
 To swap Plaid for another aggregator, only the server changes: the app's
 `SyncSnapshot` format is provider-neutral.

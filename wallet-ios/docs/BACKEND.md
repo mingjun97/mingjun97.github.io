@@ -30,7 +30,8 @@ The app side of this is already built:
 | Plaid Link presenter | `Cashline/Services/PlaidLinkPresenter.swift` |
 | Server URL / mode, auth token in Keychain | `Cashline/Services/BackendSettings.swift` |
 
-So the remaining work is the server, implementing the four endpoints below.
+The reference server implementing this contract is in
+[`../../wallet-server`](../../wallet-server) (Node, no dependencies, tested).
 
 ## Conventions
 
@@ -68,11 +69,14 @@ Server exchanges the token (`/item/public_token/exchange`), stores the
  "status": "ok", "last_synced_at": null}
 ```
 
-### `GET /v1/sync`
+### `GET /v1/sync?balances=realtime|cached`
 
 Returns everything for the signed-in user. Server-side, for each item call:
 
-- `/accounts/balance/get` (or `/accounts/get` for cached balances — cheaper)
+- `/accounts/get` for accounts and Plaid's cached balances (included in price)
+- with `balances=realtime`: `/accounts/balance/get` for checking/savings to
+  read exact balances live from the bank (billed per call — throttle it, and
+  reuse the last live read in between)
 - `/liabilities/get` → `liabilities.credit[]`
 - `/transactions/recurring/get` → `inflow_streams[]`
 
@@ -85,7 +89,8 @@ Returns everything for the signed-in user. Server-side, for each item call:
   "accounts": [
     {"id": "acc_chk", "item_id": "item_abc", "name": "Total Checking", "official_name": null,
      "mask": "4821", "type": "depository", "subtype": "checking",
-     "current_balance": 2410.12, "available_balance": 2350.00, "iso_currency_code": "USD"},
+     "current_balance": 2410.12, "available_balance": 2350.00, "iso_currency_code": "USD",
+     "balance_source": "realtime", "balance_updated_at": "2026-11-07T09:59:58Z"},
     {"id": "acc_cc", "item_id": "item_abc", "name": "Sapphire Preferred", "mask": "9911",
      "type": "credit", "subtype": "credit card", "current_balance": 684.12}
   ],
@@ -108,6 +113,8 @@ Field mapping from Plaid:
 | Snapshot field | Plaid source |
 |---|---|
 | `accounts[].current_balance / available_balance` | `balances.current / balances.available` |
+| `accounts[].balance_source` | `"realtime"` if from `/accounts/balance/get`, else `"cached"` |
+| `accounts[].balance_updated_at` | time of the live read, else `balances.last_updated_datetime` (often null) |
 | `credit_liabilities[]` | `liabilities.credit[]` (same field names) |
 | `recurring_inflows[].average_amount` | `abs(average_amount.amount)` |
 | `recurring_inflows[].frequency` | `frequency` (`WEEKLY`, `BIWEEKLY`, `SEMI_MONTHLY`, `MONTHLY`) |
@@ -137,13 +144,20 @@ See `SyncMerger.swift`; in short:
 - **User choices are kept:** names, icons, autopay settings, and which checking
   account pays a card. Manual records are never touched.
 
-## Suggested next steps
+## When the app asks for live balances
 
-1. Stand up the four endpoints against Plaid **Sandbox** (any language; a
-   serverless function per endpoint is enough). Sandbox login: `user_good` /
-   `pass_good`.
-2. Add Sign in with Apple → issue a token → `AuthTokenStore.shared.set(token)`.
-3. Add the LinkKit package (see README) and set the server URL in Settings →
-   Bank connections → Cashline server.
-4. Later: Plaid webhooks (`SYNC_UPDATES_AVAILABLE`, `DEFAULT_UPDATE`) + push
-   notifications, so balances refresh without opening the app.
+- Pull to refresh (Home, Accounts), **Sync now**, and right after connecting
+  or reconnecting a bank → `balances=realtime`.
+- Automatic sync when the app opens (if the last one is over 15 minutes old)
+  → `balances=cached`.
+
+Each synced account shows "● Live · 2:14 PM" or "Bank balance as of …"
+(amber after 12 hours).
+
+## Next steps
+
+1. Run `wallet-server` against Plaid **Sandbox** (`npm run sandbox-check`;
+   in Link, sandbox login is `user_good` / `pass_good`).
+2. Add the LinkKit package (see README), set the server URL and access token
+   in Settings → Bank connections → Cashline server.
+3. Later: Plaid webhooks + push notifications, Sign in with Apple.

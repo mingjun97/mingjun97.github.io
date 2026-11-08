@@ -50,14 +50,17 @@ public enum SyncMerger {
         var localAccountFor: [String: String] = [:] // external account id → local account id
         for ext in snap.accounts where ext.type == .depository {
             let balance = ext.availableBalance ?? ext.currentBalance
+            var accountLink = link(ext.itemId, ext.id, mask: ext.mask)
+            accountLink.balanceAsOf = ext.balanceUpdatedAt
+            accountLink.balanceIsLive = ext.isLiveBalance
             if let i = state.accounts.firstIndex(where: { $0.link?.externalId == ext.id }) {
                 if let balance { state.accounts[i].balance = cents(balance) }
-                state.accounts[i].link = link(ext.itemId, ext.id, mask: ext.mask)
+                state.accounts[i].link = accountLink
                 localAccountFor[ext.id] = state.accounts[i].id
                 report.accountsUpdated += 1
             } else {
                 let name = ext.mask.map { "\(ext.name) …\($0)" } ?? ext.name
-                let a = Account(name: name, balance: cents(balance ?? 0), link: link(ext.itemId, ext.id, mask: ext.mask))
+                let a = Account(name: name, balance: cents(balance ?? 0), link: accountLink)
                 state.accounts.append(a)
                 localAccountFor[ext.id] = a.id
                 report.accountsAdded += 1

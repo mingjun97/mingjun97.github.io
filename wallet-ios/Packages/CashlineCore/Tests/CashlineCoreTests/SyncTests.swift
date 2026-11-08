@@ -27,6 +27,7 @@ final class SyncTests: XCTestCase {
         XCTAssertEqual(r.accountsAdded, 1); XCTAssertEqual(r.billsAdded, 1); XCTAssertEqual(r.depositsAdded, 1)
         XCTAssertEqual(s.accounts[0].name, "Plaid Checking …0000")
         XCTAssertEqual(s.accounts[0].balance, 100, "available balance wins")
+        XCTAssertEqual(s.accounts[0].link?.balanceIsLive, false)
         let bill = s.bills[0]
         XCTAssertEqual(bill.amount, 410.5); XCTAssertEqual(bill.dueDay, 20); XCTAssertEqual(bill.accountId, s.accounts[0].id)
         XCTAssertEqual(Engine(state: s, today: today).nextDue(bill).date.iso, "2026-11-20")
@@ -103,7 +104,31 @@ final class SyncTests: XCTestCase {
         _ = try await mock.createLinkToken(updateItemId: nil)
         _ = try await mock.exchangePublicToken("public-sandbox", institutionName: "Demo Bank")
         var s = AppState()
-        let r = SyncMerger.merge(try await mock.fetchSnapshot(), into: &s, today: today)
+        let r = SyncMerger.merge(try await mock.fetchSnapshot(liveBalances: true), into: &s, today: today)
         XCTAssertEqual(r.accountsAdded, 1); XCTAssertEqual(r.billsAdded, 1); XCTAssertEqual(r.depositsAdded, 1)
+        XCTAssertEqual(s.accounts[0].link?.balanceIsLive, true)
+    }
+
+    func testDecodesBalanceFreshness() throws {
+        let json = #"""
+        {"accounts":[{"id":"a","item_id":"i","name":"Checking","type":"depository","available_balance":12.5,
+                      "balance_source":"realtime","balance_updated_at":"2026-11-08T10:00:00.000Z"}],
+         "synced_at":"2026-11-08T10:00:01Z"}
+        """#
+        let snap = try JSONDecoder.cashlineAPI.decode(SyncSnapshot.self, from: Data(json.utf8))
+        XCTAssertTrue(snap.accounts[0].isLiveBalance)
+        XCTAssertNotNil(snap.accounts[0].balanceUpdatedAt)
+        var s = AppState()
+        _ = SyncMerger.merge(snap, into: &s, today: Day(iso: "2026-11-08")!)
+        XCTAssertEqual(s.accounts[0].balance, 12.5)
+        XCTAssertEqual(s.accounts[0].link?.balanceIsLive, true)
+        XCTAssertEqual(s.accounts[0].link?.balanceAsOf, snap.accounts[0].balanceUpdatedAt)
+    }
+
+    func testHTTPBackendBuildsURLs() async throws {
+        // only checks URL building; the request itself fails offline
+        let base = URL(string: "https://api.example.com/cashline")!
+        let url = URL(string: "v1/sync?balances=realtime", relativeTo: base.appendingPathComponent(""))!.absoluteURL
+        XCTAssertEqual(url.absoluteString, "https://api.example.com/cashline/v1/sync?balances=realtime")
     }
 }

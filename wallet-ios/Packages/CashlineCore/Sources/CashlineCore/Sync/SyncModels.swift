@@ -45,14 +45,22 @@ public struct ExternalAccount: Codable, Hashable, Identifiable, Sendable {
     public var currentBalance: Double?
     public var availableBalance: Double?
     public var isoCurrencyCode: String?
+    /// "realtime" when read live from the bank, "cached" for the aggregator's stored copy.
+    public var balanceSource: String?
+    /// When the bank reported this balance, if known.
+    public var balanceUpdatedAt: Date?
 
     public init(id: String, itemId: String, name: String, officialName: String? = nil, mask: String? = nil,
                 type: ExternalAccountType, subtype: String? = nil, currentBalance: Double? = nil,
-                availableBalance: Double? = nil, isoCurrencyCode: String? = "USD") {
+                availableBalance: Double? = nil, isoCurrencyCode: String? = "USD",
+                balanceSource: String? = nil, balanceUpdatedAt: Date? = nil) {
         self.id = id; self.itemId = itemId; self.name = name; self.officialName = officialName; self.mask = mask
         self.type = type; self.subtype = subtype; self.currentBalance = currentBalance
         self.availableBalance = availableBalance; self.isoCurrencyCode = isoCurrencyCode
+        self.balanceSource = balanceSource; self.balanceUpdatedAt = balanceUpdatedAt
     }
+
+    public var isLiveBalance: Bool { balanceSource == "realtime" }
 }
 
 /// Statement data for a credit account (Plaid Liabilities → `credit`).
